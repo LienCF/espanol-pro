@@ -1,10 +1,17 @@
 import { Hono } from 'hono'
 import { cors } from 'hono/cors'
+import { calculateNewMastery } from './bkt'
+import { calculateSimilarity } from './utils/scoring'
+import { S3Client, PutObjectCommand } from '@aws-sdk/client-s3'
+import { getSignedUrl } from '@aws-sdk/s3-request-presigner'
 
 type Bindings = {
   DB: D1Database
   BUCKET: R2Bucket
   AI: any
+  ACCOUNT_ID: string
+  R2_ACCESS_KEY_ID: string
+  R2_SECRET_ACCESS_KEY: string
 }
 
 const app = new Hono<{ Bindings: Bindings }>()
@@ -13,6 +20,37 @@ app.use('/*', cors())
 
 app.get('/', (c) => {
   return c.text('Hola, Español Pro API!')
+})
+
+// 11. Presigned Upload URL
+app.post('/api/upload/presign', async (c) => {
+  try {
+    const { filename, contentType } = await c.req.json()
+    if (!filename) return c.json({ error: 'Filename is required' }, 400)
+
+    const S3 = new S3Client({
+      region: 'auto',
+      endpoint: `https://${c.env.ACCOUNT_ID}.r2.cloudflarestorage.com`,
+      credentials: {
+        accessKeyId: c.env.R2_ACCESS_KEY_ID,
+        secretAccessKey: c.env.R2_SECRET_ACCESS_KEY,
+      },
+    })
+
+    const key = `uploads/${crypto.randomUUID()}-${filename}`
+    const command = new PutObjectCommand({
+      Bucket: 'espanol-pro-content',
+      Key: key,
+      ContentType: contentType || 'audio/mpeg',
+    })
+
+    const uploadUrl = await getSignedUrl(S3, command, { expiresIn: 3600 })
+
+    return c.json({ uploadUrl, key })
+  } catch (e) {
+    console.error('Presign error:', e)
+    return c.json({ error: 'Failed to generate upload URL' }, 500)
+  }
 })
 
 // 1. Get all courses
@@ -132,6 +170,32 @@ app.post('/api/progress', async (c) => {
       ).bind(userId, courseId, Math.floor(Date.now() / 1000)).run()
     }
 
+    // 3. Update BKT (Bayesian Knowledge Tracing) if lesson has a Knowledge Component
+    const lesson = await c.env.DB.prepare('SELECT kc_id FROM lessons WHERE id = ?').bind(lessonId).first()
+    
+    if (lesson && lesson.kc_id) {
+      const kcId = lesson.kc_id as string
+      
+      // Get current state
+      const kcState = await c.env.DB.prepare(
+        'SELECT p_know FROM user_kc_state WHERE user_id = ? AND kc_id = ?'
+      ).bind(userId, kcId).first()
+      
+      const currentP = kcState ? (kcState.p_know as number) : 0.01
+      const newP = calculateNewMastery(currentP, !!isCorrect)
+      
+      // Upsert new state
+      if (kcState) {
+        await c.env.DB.prepare(
+          'UPDATE user_kc_state SET p_know = ?, last_practice_time = ? WHERE user_id = ? AND kc_id = ?'
+        ).bind(newP, Math.floor(Date.now() / 1000), userId, kcId).run()
+      } else {
+        await c.env.DB.prepare(
+          'INSERT INTO user_kc_state (user_id, kc_id, p_know, last_practice_time) VALUES (?, ?, ?, ?)'
+        ).bind(userId, kcId, newP, Math.floor(Date.now() / 1000)).run()
+      }
+    }
+
     return c.json({ success: true })
   } catch (e) {
     console.error(e)
@@ -176,12 +240,34 @@ app.post('/api/auth/login', async (c) => {
 // 7. AI Speech Evaluation
 app.post('/api/ai/evaluate-speech', async (c) => {
   try {
-    const body = await c.req.parseBody()
-    const audioFile = body['audio']
-    const referenceText = body['reference_text'] as string
+    const contentType = c.req.header('content-type') || ''
+    let audioBuffer: ArrayBuffer | undefined
+    let referenceText = ''
 
-    if (!audioFile || !(audioFile instanceof File)) {
-      return c.json({ error: 'Audio file is required' }, 400)
+    if (contentType.includes('application/json')) {
+      const body = await c.req.json()
+      referenceText = body['reference_text'] as string
+      const fileKey = body['fileKey'] as string
+
+      if (fileKey) {
+        const object = await c.env.BUCKET.get(fileKey)
+        if (!object) {
+          return c.json({ error: 'Audio file not found in storage' }, 404)
+        }
+        audioBuffer = await object.arrayBuffer()
+      }
+    } else if (contentType.includes('multipart/form-data')) {
+      const body = await c.req.parseBody()
+      const audioFile = body['audio']
+      referenceText = body['reference_text'] as string
+
+      if (audioFile && audioFile instanceof File) {
+        audioBuffer = await audioFile.arrayBuffer()
+      }
+    }
+
+    if (!audioBuffer) {
+      return c.json({ error: 'Audio input is required (file or fileKey)' }, 400)
     }
 
     if (!referenceText) {
@@ -189,28 +275,14 @@ app.post('/api/ai/evaluate-speech', async (c) => {
     }
 
     // Run Whisper on Workers AI
-    const arrayBuffer = await audioFile.arrayBuffer()
     // @ts-ignore
     const aiResponse = await c.env.AI.run('@cf/openai/whisper', {
-      audio: [...new Uint8Array(arrayBuffer)]
+      audio: [...new Uint8Array(audioBuffer)]
     })
 
     const transcription = aiResponse.text || ''
     
-    // Simple scoring: compare normalized strings
-    // In a real app, use Levenshtein distance. Here, simpler word overlap.
-    const normalize = (s: string) => s.toLowerCase().replace(/[^\w\s]/g, '')
-    const targetWords = normalize(referenceText).split(/\s+/)
-    const spokenWords = normalize(transcription).split(/\s+/)
-    
-    let matchCount = 0
-    for (const word of targetWords) {
-      if (spokenWords.includes(word)) matchCount++
-    }
-    
-    const score = targetWords.length > 0 
-      ? Math.round((matchCount / targetWords.length) * 100) 
-      : 0
+    const score = calculateSimilarity(referenceText, transcription);
 
     return c.json({
       score: score,
@@ -233,9 +305,27 @@ app.post('/api/ai/chat', async (c) => {
       return c.json({ error: 'Messages array is required' }, 400)
     }
 
+    // Inject Grammar Tutor Instruction
+    const grammarInstruction = " IMPORTANT: If the user makes a grammatical error, reply naturally first, then append a correction at the very end in this specific format: [CORRECTION: <Spanish correction> - <English explanation>]."
+    
+    const processedMessages = messages.map(msg => {
+      if (msg.role === 'system') {
+        return { ...msg, content: msg.content + grammarInstruction }
+      }
+      return msg
+    })
+
+    // If no system message was found, add one (optional, but good practice)
+    if (!processedMessages.some(m => m.role === 'system')) {
+      processedMessages.unshift({
+        role: 'system',
+        content: "You are a helpful Spanish tutor." + grammarInstruction
+      })
+    }
+
     // @ts-ignore
     const aiResponse = await c.env.AI.run('@cf/meta/llama-3-8b-instruct', {
-      messages: messages
+      messages: processedMessages
     })
 
     return c.json({ response: aiResponse.response })
@@ -261,6 +351,27 @@ app.get('/:filename', async (c) => {
   return new Response(object.body, {
     headers,
   })
+})
+
+// 10. Get User Skills (BKT Mastery)
+app.get('/api/users/:userId/skills', async (c) => {
+  const userId = c.req.param('userId')
+  try {
+    const { results } = await c.env.DB.prepare(`
+      SELECT 
+        kc.name as skill_name,
+        kc.description,
+        COALESCE(uks.p_know, 0.01) as mastery_level,
+        uks.last_practice_time
+      FROM knowledge_components kc
+      LEFT JOIN user_kc_state uks ON kc.id = uks.kc_id AND uks.user_id = ?
+      ORDER BY mastery_level DESC
+    `).bind(userId).all()
+    
+    return c.json(results)
+  } catch (e) {
+    return c.json({ error: 'Failed to fetch skills' }, 500)
+  }
 })
 
 export default app

@@ -35,8 +35,10 @@ CREATE TABLE IF NOT EXISTS lessons (
     title TEXT NOT NULL,
     content_type TEXT NOT NULL, -- 'AUDIO_DRILL', 'QUIZ', 'DIALOGUE', 'CONSTRUCTION_SCENARIO'
     content_json TEXT, -- Structure varies by content_type
+    kc_id TEXT, -- Main Knowledge Component tested by this lesson
     order_index INTEGER NOT NULL,
-    FOREIGN KEY (unit_id) REFERENCES units(id)
+    FOREIGN KEY (unit_id) REFERENCES units(id),
+    FOREIGN KEY (kc_id) REFERENCES knowledge_components(id)
 );
 
 -- Knowledge Components (For BKT Algorithm)

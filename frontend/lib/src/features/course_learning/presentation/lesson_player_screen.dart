@@ -1,5 +1,6 @@
 import 'dart:convert';
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:just_audio/just_audio.dart';
 import '../../../core/api/api_client.dart';
@@ -8,6 +9,10 @@ import '../../../core/presentation/widgets/typing_indicator.dart';
 import '../../course_learning/data/course_repository.dart';
 import '../../course_learning/domain/lesson.dart';
 import 'recording_widget.dart';
+
+class NextLessonIntent extends Intent {
+  const NextLessonIntent();
+}
 
 class LessonPlayerScreen extends ConsumerWidget {
   final String lessonId;
@@ -23,21 +28,49 @@ class LessonPlayerScreen extends ConsumerWidget {
   Widget build(BuildContext context, WidgetRef ref) {
     final lessonAsync = ref.watch(lessonDetailProvider(lessonId));
 
-    return Scaffold(
-      appBar: AppBar(
-        title: lessonAsync.when(
-          data: (lesson) => Text(lesson?.title ?? 'Lesson'),
-          loading: () => const Text('Loading...'),
-          error: (_, __) => const Text('Error'),
-        ),
-      ),
-      body: lessonAsync.when(
-        data: (lesson) {
-          if (lesson == null) return const Center(child: Text('Lesson not found'));
-          return _buildLessonContent(context, lesson, ref);
+    return Shortcuts(
+      shortcuts: <LogicalKeySet, Intent>{
+        LogicalKeySet(LogicalKeyboardKey.arrowRight): const NextLessonIntent(),
+      },
+      child: Actions(
+        actions: <Type, Action<Intent>>{
+          NextLessonIntent: CallbackAction<NextLessonIntent>(
+            onInvoke: (NextLessonIntent intent) {
+              // Only allow skipping if we have data (and maybe check if it's allowed)
+              if (lessonAsync.hasValue) {
+                 // We need to know context to pop, and ref to save.
+                 // But _markComplete expects to be called. 
+                 // Since we are stateless, we can just call the logic.
+                 // However, _markComplete uses `context` which is available here.
+                 // But we need to know if it's a quiz to pass score? 
+                 // For general navigation "Next", we assume completion or skip.
+                 // For MVP, let's map ArrowRight to "Complete Lesson" button action.
+                 _markComplete(ref, context); 
+              }
+              return null;
+            },
+          ),
         },
-        loading: () => const Center(child: CircularProgressIndicator()),
-        error: (err, stack) => Center(child: Text('Error: $err')),
+        child: Scaffold(
+          appBar: AppBar(
+            title: lessonAsync.when(
+              data: (lesson) => Text(lesson?.title ?? 'Lesson'),
+              loading: () => const Text('Loading...'),
+              error: (_, __) => const Text('Error'),
+            ),
+          ),
+          body: Focus(
+            autofocus: true,
+            child: lessonAsync.when(
+              data: (lesson) {
+                if (lesson == null) return const Center(child: Text('Lesson not found'));
+                return _buildLessonContent(context, lesson, ref);
+              },
+              loading: () => const Center(child: CircularProgressIndicator()),
+              error: (err, stack) => Center(child: Text('Error: $err')),
+            ),
+          ),
+        ),
       ),
     );
   }
@@ -488,11 +521,24 @@ class _RoleplayViewState extends ConsumerState<_RoleplayView> {
       ];
 
       final response = await api.post('/api/ai/chat', data: {'messages': apiMessages});
-      final aiReply = response.data['response'];
+      var aiReply = response.data['response'] as String;
+      String? correction;
+
+      // Parse Correction
+      final correctionRegex = RegExp(r'\[CORRECTION:(.*?)\]', dotAll: true);
+      final match = correctionRegex.firstMatch(aiReply);
+      if (match != null) {
+        correction = match.group(1)?.trim();
+        aiReply = aiReply.replaceAll(match.group(0)!, '').trim();
+      }
 
       if (mounted) {
         setState(() {
-          _messages.add({'role': 'assistant', 'content': aiReply});
+          final message = {'role': 'assistant', 'content': aiReply};
+          if (correction != null) {
+            message['correction'] = correction;
+          }
+          _messages.add(message);
           _isTyping = false;
         });
         _scrollToBottom();
@@ -552,6 +598,7 @@ class _RoleplayViewState extends ConsumerState<_RoleplayView> {
                 message: msg['content'] ?? '',
                 isMe: isUser,
                 displayName: isUser ? 'You' : 'Carlos', // Could be dynamic
+                correction: msg['correction'],
               );
             },
           ),

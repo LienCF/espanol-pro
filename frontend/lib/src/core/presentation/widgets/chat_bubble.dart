@@ -5,6 +5,7 @@ class ChatBubble extends StatelessWidget {
   final bool isMe;
   final String? avatarUrl;
   final String? displayName;
+  final String? correction;
 
   const ChatBubble({
     super.key,
@@ -12,6 +13,7 @@ class ChatBubble extends StatelessWidget {
     required this.isMe,
     this.avatarUrl,
     this.displayName,
+    this.correction,
   });
 
   @override
@@ -64,11 +66,42 @@ class ChatBubble extends StatelessWidget {
                       ),
                     ],
                   ),
-                  child: Text(
-                    message,
-                    style: theme.textTheme.bodyLarge?.copyWith(
-                      color: isMe ? colorScheme.onPrimary : colorScheme.onSurfaceVariant,
-                    ),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                        message,
+                        style: theme.textTheme.bodyLarge?.copyWith(
+                          color: isMe ? colorScheme.onPrimary : colorScheme.onSurfaceVariant,
+                        ),
+                      ),
+                      if (correction != null) ...[
+                        const SizedBox(height: 8),
+                        Container(
+                          padding: const EdgeInsets.all(8),
+                          decoration: BoxDecoration(
+                            color: Colors.amber.shade100,
+                            borderRadius: BorderRadius.circular(8),
+                            border: Border.all(color: Colors.amber.shade300),
+                          ),
+                          child: Row(
+                            children: [
+                              Icon(Icons.lightbulb_outline, size: 16, color: Colors.amber.shade900),
+                              const SizedBox(width: 8),
+                              Expanded(
+                                child: Text(
+                                  correction!,
+                                  style: theme.textTheme.bodySmall?.copyWith(
+                                    color: Colors.amber.shade900,
+                                    fontStyle: FontStyle.italic,
+                                  ),
+                                ),
+                              ),
+                            ],
+                          ),
+                        ),
+                      ],
+                    ],
                   ),
                 ),
               ],

@@ -226,3 +226,44 @@
     *   **Paywall:** Created `PaywallScreen` with a beautiful marketing UI and mock purchase capability.
     *   **Repository:** Created `SubscriptionRepository` to handle "Upgrading" (mock) and updating app state.
     *   **UI Guard:** `DashboardScreen` now locks "Specialized" tracks for non-premium users, showing a lock icon and fade effect. Tapping locked courses opens the Paywall. "Go Pro" button added to AppBar.
+
+### 2025-12-05 (Later)
+*   **Task:** AI Feature - Grammar Correction
+*   **Status:** Completed
+*   **Details:**
+    *   **Backend:** Modified `POST /api/ai/chat` to inject a system instruction: "If the user makes a grammatical error... append a correction at the end in this format: [CORRECTION: ...]".
+    *   **Frontend:** Updated `_RoleplayView` to parse the `[CORRECTION: ...]` tag from the AI response.
+    *   **UI:** Updated `ChatBubble` to display corrections in a dedicated, styled box ("Lightbulb" style) below the main message.
+
+### 2025-12-05 (Later)
+*   **Task:** BKT Engine & Skills Visualization
+*   **Status:** Completed
+*   **Details:**
+    *   **Schema:** Added `kc_id` to `lessons` table. Created `knowledge_components` and `user_kc_state` tables.
+    *   **Logic:** Implemented Bayesian Knowledge Tracing algorithm (`calculateNewMastery`) in backend (`bkt.ts`).
+    *   **API:** Updated `POST /api/progress` to calculate and update mastery. Added `GET /api/users/:userId/skills` to fetch mastery data.
+    *   **Frontend:** Created `Skill` domain model and `SkillsRepository`. Added a "Skills" tab to `DashboardScreen` with `NavigationBar`, displaying skills as cards with circular progress indicators.
+
+### 2025-12-05 (Later)
+*   **Task:** Desktop Optimization & Polish
+*   **Status:** Completed
+*   **Details:**
+    *   **Window Manager:** Added `window_manager` dependency. Configured `main.dart` to enforce minimum window size (800x600) and custom title for desktop builds.
+    *   **Shortcuts:** Implemented keyboard navigation in `LessonPlayerScreen`. `ArrowRight` now triggers the "Next/Complete" action.
+    *   **Adaptive Layout:** Refactored `DashboardScreen` to use `LayoutBuilder`. On screens wider than 600px, courses are displayed in a responsive `GridView` instead of a `ListView`.
+
+### 2025-12-05 (Later)
+*   **Task:** AI Feature - Advanced Speech Scoring
+*   **Status:** Completed
+*   **Details:**
+    *   **Algorithm:** Implemented Levenshtein Distance algorithm in `backend/src/utils/scoring.ts` to calculate text similarity (0-100%).
+    *   **Backend:** Updated `POST /api/ai/evaluate-speech` to use the new `calculateSimilarity` function instead of simple word overlap.
+    *   **Deployment:** Deployed updated worker to production.
+
+### 2025-12-05 (Later)
+*   **Task:** Infrastructure - Presigned Uploads (R2)
+*   **Status:** Completed
+*   **Details:**
+    *   **Backend:** Installed `@aws-sdk/client-s3`. Added `POST /api/upload/presign` to generate secure PUT URLs for R2.
+    *   **Backend:** Updated `POST /api/ai/evaluate-speech` to accept `fileKey` and fetch audio directly from R2 bucket instead of requiring multipart upload.
+    *   **Frontend:** Refactored `RecordingWidget` to first get a presigned URL, upload audio directly to R2 using `Dio.put`, and then trigger evaluation with the R2 key.

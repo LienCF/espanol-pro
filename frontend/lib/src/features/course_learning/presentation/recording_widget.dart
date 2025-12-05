@@ -96,12 +96,37 @@ class _RecordingWidgetState extends ConsumerState<RecordingWidget> {
     setState(() => _isEvaluating = true);
     try {
       final api = ref.read(apiClientProvider);
-      final formData = FormData.fromMap({
-        'audio': await MultipartFile.fromFile(path),
+      
+      // 1. Get Presigned URL
+      final filename = path.split('/').last;
+      final presignRes = await api.post('/api/upload/presign', data: {
+        'filename': filename,
+        'contentType': 'audio/mp4',
+      });
+      final uploadUrl = presignRes.data['uploadUrl'];
+      final key = presignRes.data['key'];
+
+      // 2. Upload to R2 directly
+      final file = File(path);
+      final fileBytes = await file.readAsBytes();
+      
+      // Use a fresh Dio instance to avoid base URL/interceptor issues
+      await Dio().put(
+        uploadUrl, 
+        data: Stream.fromIterable([fileBytes]),
+        options: Options(
+          headers: {
+            'Content-Type': 'audio/mp4',
+            'Content-Length': fileBytes.length,
+          },
+        )
+      );
+
+      // 3. Evaluate using R2 Key
+      final response = await api.post('/api/ai/evaluate-speech', data: {
+        'fileKey': key,
         'reference_text': widget.referenceText,
       });
-
-      final response = await api.post('/api/ai/evaluate-speech', data: formData);
       
       if (mounted) {
         setState(() {

@@ -3,7 +3,9 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import '../../../core/auth/auth_repository.dart';
 import '../../course_learning/data/course_repository.dart';
+import '../../course_learning/data/skills_repository.dart';
 import '../../course_learning/domain/course.dart';
+import '../../course_learning/domain/skill.dart';
 
 class DashboardScreen extends ConsumerStatefulWidget {
   const DashboardScreen({super.key});
@@ -13,6 +15,8 @@ class DashboardScreen extends ConsumerStatefulWidget {
 }
 
 class _DashboardScreenState extends ConsumerState<DashboardScreen> {
+  int _selectedIndex = 0;
+
   @override
   void initState() {
     super.initState();
@@ -24,7 +28,6 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
 
   @override
   Widget build(BuildContext context) {
-    final coursesAsync = ref.watch(courseListProvider);
     final user = ref.watch(currentUserProvider);
     final isPremium = user?.isPremium ?? false;
 
@@ -52,11 +55,71 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
           ),
         ],
       ),
-      body: coursesAsync.when(
-        data: (courses) => _buildCourseList(context, courses, isPremium),
-        loading: () => const Center(child: CircularProgressIndicator()),
-        error: (err, stack) => Center(child: Text('Error: $err')),
+      body: _selectedIndex == 0 
+          ? _buildCoursesTab(isPremium)
+          : _buildSkillsTab(),
+      bottomNavigationBar: NavigationBar(
+        selectedIndex: _selectedIndex,
+        onDestinationSelected: (index) {
+          setState(() {
+            _selectedIndex = index;
+          });
+        },
+        destinations: const [
+          NavigationDestination(
+            icon: Icon(Icons.dashboard_outlined),
+            selectedIcon: Icon(Icons.dashboard),
+            label: 'Courses',
+          ),
+          NavigationDestination(
+            icon: Icon(Icons.insights_outlined),
+            selectedIcon: Icon(Icons.insights),
+            label: 'Skills',
+          ),
+        ],
       ),
+    );
+  }
+
+  Widget _buildCoursesTab(bool isPremium) {
+    final coursesAsync = ref.watch(courseListProvider);
+    
+    return coursesAsync.when(
+      data: (courses) => _buildCourseList(context, courses, isPremium),
+      loading: () => const Center(child: CircularProgressIndicator()),
+      error: (err, stack) => Center(child: Text('Error: $err')),
+    );
+  }
+
+  Widget _buildSkillsTab() {
+    final skillsAsync = ref.watch(userSkillsProvider);
+
+    return skillsAsync.when(
+      data: (skills) {
+        if (skills.isEmpty) {
+          return const Center(
+            child: Column(
+              mainAxisAlignment: MainAxisAlignment.center,
+              children: [
+                Icon(Icons.psychology_outlined, size: 64, color: Colors.grey),
+                SizedBox(height: 16),
+                Text('No skills data yet.', style: TextStyle(color: Colors.grey)),
+                Text('Complete lessons to track your mastery!', style: TextStyle(color: Colors.grey)),
+              ],
+            ),
+          );
+        }
+        return ListView.builder(
+          padding: const EdgeInsets.all(16),
+          itemCount: skills.length,
+          itemBuilder: (context, index) {
+            final skill = skills[index];
+            return SkillCard(skill: skill);
+          },
+        );
+      },
+      loading: () => const Center(child: CircularProgressIndicator()),
+      error: (err, stack) => Center(child: Text('Error: $err')),
     );
   }
 
@@ -69,21 +132,72 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
     final generalTrack = courses.where((c) => c.trackType == 'GENERAL').toList();
     final specializedTrack = courses.where((c) => c.trackType == 'SPECIALIZED').toList();
 
-    return ListView(
-      padding: const EdgeInsets.all(16),
-      children: [
-        if (generalTrack.isNotEmpty) ...[
-          _buildSectionHeader(context, 'General Proficiency', Icons.school),
-          const SizedBox(height: 8),
-          ...generalTrack.map((c) => CourseCard(course: c, isLocked: false)), // General is always free for MVP
-          const SizedBox(height: 24),
-        ],
-        if (specializedTrack.isNotEmpty) ...[
-          _buildSectionHeader(context, 'Specialized Tracks (ESP)', Icons.work),
-          const SizedBox(height: 8),
-          ...specializedTrack.map((c) => CourseCard(course: c, isLocked: !isPremium)),
-        ],
-      ],
+    return LayoutBuilder(
+      builder: (context, constraints) {
+        if (constraints.maxWidth > 600) {
+          // Desktop / Tablet Grid Layout
+          return CustomScrollView(
+            padding: const EdgeInsets.all(24),
+            slivers: [
+              if (generalTrack.isNotEmpty) ...[
+                SliverToBoxAdapter(child: Padding(
+                  padding: const EdgeInsets.only(bottom: 16.0),
+                  child: _buildSectionHeader(context, 'General Proficiency', Icons.school),
+                )),
+                SliverGrid(
+                  gridDelegate: const SliverGridDelegateWithMaxCrossAxisExtent(
+                    maxCrossAxisExtent: 400,
+                    mainAxisSpacing: 16,
+                    crossAxisSpacing: 16,
+                    childAspectRatio: 1.8,
+                  ),
+                  delegate: SliverChildBuilderDelegate(
+                    (context, index) => CourseCard(course: generalTrack[index], isLocked: false),
+                    childCount: generalTrack.length,
+                  ),
+                ),
+                const SliverToBoxAdapter(child: SizedBox(height: 32)),
+              ],
+              if (specializedTrack.isNotEmpty) ...[
+                SliverToBoxAdapter(child: Padding(
+                  padding: const EdgeInsets.only(bottom: 16.0),
+                  child: _buildSectionHeader(context, 'Specialized Tracks (ESP)', Icons.work),
+                )),
+                SliverGrid(
+                  gridDelegate: const SliverGridDelegateWithMaxCrossAxisExtent(
+                    maxCrossAxisExtent: 400,
+                    mainAxisSpacing: 16,
+                    crossAxisSpacing: 16,
+                    childAspectRatio: 1.8,
+                  ),
+                  delegate: SliverChildBuilderDelegate(
+                    (context, index) => CourseCard(course: specializedTrack[index], isLocked: !isPremium),
+                    childCount: specializedTrack.length,
+                  ),
+                ),
+              ],
+            ],
+          );
+        } else {
+          // Mobile List Layout
+          return ListView(
+            padding: const EdgeInsets.all(16),
+            children: [
+              if (generalTrack.isNotEmpty) ...[
+                _buildSectionHeader(context, 'General Proficiency', Icons.school),
+                const SizedBox(height: 8),
+                ...generalTrack.map((c) => CourseCard(course: c, isLocked: false)), // General is always free for MVP
+                const SizedBox(height: 24),
+              ],
+              if (specializedTrack.isNotEmpty) ...[
+                _buildSectionHeader(context, 'Specialized Tracks (ESP)', Icons.work),
+                const SizedBox(height: 8),
+                ...specializedTrack.map((c) => CourseCard(course: c, isLocked: !isPremium)),
+              ],
+            ],
+          );
+        }
+      },
     );
   }
 
@@ -99,6 +213,77 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
               ),
         ),
       ],
+    );
+  }
+}
+
+class SkillCard extends StatelessWidget {
+  final Skill skill;
+
+  const SkillCard({super.key, required this.skill});
+
+  @override
+  Widget build(BuildContext context) {
+    final masteryPercent = (skill.masteryLevel * 100).toInt();
+    final colorScheme = Theme.of(context).colorScheme;
+
+    Color progressColor;
+    if (skill.masteryLevel < 0.4) {
+      progressColor = Colors.red;
+    } else if (skill.masteryLevel < 0.8) {
+      progressColor = Colors.orange;
+    } else {
+      progressColor = Colors.green;
+    }
+
+    return Card(
+      elevation: 2,
+      margin: const EdgeInsets.only(bottom: 12),
+      child: Padding(
+        padding: const EdgeInsets.all(16.0),
+        child: Row(
+          children: [
+            SizedBox(
+              width: 60,
+              height: 60,
+              child: Stack(
+                fit: StackFit.expand,
+                children: [
+                  CircularProgressIndicator(
+                    value: skill.masteryLevel,
+                    strokeWidth: 6,
+                    backgroundColor: colorScheme.surfaceContainerHighest,
+                    color: progressColor,
+                  ),
+                  Center(
+                    child: Text(
+                      '$masteryPercent%',
+                      style: const TextStyle(fontWeight: FontWeight.bold),
+                    ),
+                  ),
+                ],
+              ),
+            ),
+            const SizedBox(width: 16),
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    skill.name,
+                    style: Theme.of(context).textTheme.titleMedium?.copyWith(fontWeight: FontWeight.bold),
+                  ),
+                  if (skill.description != null)
+                    Text(
+                      skill.description!,
+                      style: Theme.of(context).textTheme.bodySmall?.copyWith(color: Colors.grey[600]),
+                    ),
+                ],
+              ),
+            ),
+          ],
+        ),
+      ),
     );
   }
 }
