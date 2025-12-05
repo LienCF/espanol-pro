@@ -1,0 +1,39 @@
+
+> dev
+> wrangler dev src/index.ts
+
+Using "CF_API_KEY" environment variable. This is deprecated. Please use "CLOUDFLARE_API_KEY", instead.
+Proxy environment variables detected. We'll use your proxy for fetch requests.
+
+ ⛅️ wrangler 4.47.0 (update available 4.53.0)
+─────────────────────────────────────────────
+Your Worker has access to the following bindings:
+Binding                               Resource         Mode
+env.DB (espanol-pro-db)               D1 Database      local
+env.BUCKET (espanol-pro-content)      R2 Bucket        local
+env.AI                                AI               remote
+
+
+[31m✘ [41;31m[[41;97mERROR[41;31m][0m [1mBuild failed with 2 errors:[0m
+
+  [31m✘ [41;31m[[41;97mERROR[41;31m][0m [1mCould not resolve "hono"[0m
+  
+      src/index.ts:1:21:
+  [37m      1 │ import { Hono } from [32m'hono'[37m
+          ╵                      [32m~~~~~~[0m
+  
+    You can mark the path "hono" as external to exclude it from the bundle, which will remove this error and leave the unresolved path in the bundle.
+  
+  
+  [31m✘ [41;31m[[41;97mERROR[41;31m][0m [1mCould not resolve "hono/cors"[0m
+  
+      src/index.ts:2:21:
+  [37m      2 │ import { cors } from [32m'hono/cors'[37m
+          ╵                      [32m~~~~~~~~~~~[0m
+  
+    You can mark the path "hono/cors" as external to exclude it from the bundle, which will remove this error and leave the unresolved path in the bundle.
+  
+  
+
+
+🪵  Logs were written to "/Users/liencf/Library/Preferences/.wrangler/logs/wrangler-2025-12-05_05-58-42_598.log"

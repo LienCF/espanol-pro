@@ -1,0 +1,48 @@
+{
+  "unit_id": "u1",
+  "title": "Unit 1: The Basics",
+  "lessons": [
+    {
+      "lesson_id": "l1_basic",
+      "title": "Basic Sentences",
+      "type": "DIALOGUE",
+      "content": [
+        {
+          "speaker": "A",
+          "es": "Buenos días.",
+          "en": "Good morning.",
+          "audio_ref": "u1_l1_01.mp3"
+        },
+        {
+          "speaker": "B",
+          "es": "Buenos días, señor.",
+          "en": "Good morning, sir.",
+          "audio_ref": "u1_l1_02.mp3"
+        },
+        {
+          "speaker": "A",
+          "es": "¿Cómo está usted?",
+          "en": "How are you?",
+          "audio_ref": "u1_l1_03.mp3"
+        }
+      ]
+    },
+    {
+      "lesson_id": "l1_drill",
+      "title": "Substitution Drill",
+      "type": "DRILL",
+      "content": [
+        {
+          "base": "Yo voy al banco.",
+          "substitution": "la tienda",
+          "result": "Yo voy a la tienda."
+        },
+        {
+          "base": "Yo voy a la tienda.",
+          "substitution": "el hotel",
+          "result": "Yo voy al hotel."
+        }
+      ]
+    }
+  ]
+}

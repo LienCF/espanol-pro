@@ -1,0 +1,331 @@
+import 'package:dio/dio.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:riverpod_annotation/riverpod_annotation.dart';
+import 'package:drift/drift.dart';
+import '../../../core/database/database_provider.dart';
+import '../../../core/api/api_client.dart';
+import '../../../core/auth/auth_repository.dart';
+import '../domain/course.dart';
+import '../domain/unit.dart';
+import '../domain/lesson.dart';
+import 'app_database.dart';
+
+part 'course_repository.g.dart';
+
+class CourseRepository {
+  final AppDatabase _db;
+  final Dio _api;
+  final String? _userId;
+
+  CourseRepository(this._db, this._api, this._userId);
+
+  Stream<List<Course>> watchCourses() {
+    return _db.select(_db.coursesTable).watch().map((rows) {
+      return rows.map((row) => Course(
+        id: row.id,
+        slug: row.slug,
+        title: row.title,
+        description: row.description,
+        level: row.level,
+        trackType: row.trackType,
+        thumbnailUrl: row.thumbnailUrl,
+        version: row.version,
+        completedLessonsCount: row.completedLessonsCount,
+        totalLessonsCount: row.totalLessonsCount,
+      )).toList();
+    });
+  }
+
+  Stream<Course?> watchCourse(String courseId) {
+    return (_db.select(_db.coursesTable)..where((tbl) => tbl.id.equals(courseId)))
+        .watchSingleOrNull()
+        .map((row) {
+          if (row == null) return null;
+          return Course(
+            id: row.id,
+            slug: row.slug,
+            title: row.title,
+            description: row.description,
+            level: row.level,
+            trackType: row.trackType,
+            thumbnailUrl: row.thumbnailUrl,
+            version: row.version,
+            completedLessonsCount: row.completedLessonsCount,
+            totalLessonsCount: row.totalLessonsCount,
+          );
+        });
+  }
+
+  Stream<List<Unit>> watchUnits(String courseId) {
+    return (_db.select(_db.unitsTable)..where((tbl) => tbl.courseId.equals(courseId))
+          ..orderBy([(t) => OrderingTerm(expression: t.orderIndex)]))
+        .watch()
+        .map((rows) => rows
+            .map((row) => Unit(
+                  id: row.id,
+                  courseId: row.courseId,
+                  title: row.title,
+                  orderIndex: row.orderIndex,
+                ))
+            .toList());
+  }
+
+  Stream<List<Lesson>> watchLessons(String unitId) {
+    final query = _db.select(_db.lessonsTable).join([
+      leftOuterJoin(
+        _db.localProgressTable,
+        _db.localProgressTable.lessonId.equalsExp(_db.lessonsTable.id),
+      ),
+    ])
+      ..where(_db.lessonsTable.unitId.equals(unitId))
+      ..orderBy([OrderingTerm(expression: _db.lessonsTable.orderIndex)]);
+
+    return query.watch().map((rows) {
+      return rows.map((row) {
+        final lesson = row.readTable(_db.lessonsTable);
+        final progress = row.readTableOrNull(_db.localProgressTable);
+
+        return Lesson(
+          id: lesson.id,
+          unitId: lesson.unitId,
+          title: lesson.title,
+          contentType: lesson.contentType,
+          contentJson: lesson.contentJson,
+          orderIndex: lesson.orderIndex,
+          isCompleted: progress?.isCompleted ?? false,
+        );
+      }).toList();
+    });
+  }
+
+  Stream<Lesson?> watchLesson(String lessonId) {
+    final query = _db.select(_db.lessonsTable).join([
+      leftOuterJoin(
+        _db.localProgressTable,
+        _db.localProgressTable.lessonId.equalsExp(_db.lessonsTable.id),
+      ),
+    ])..where(_db.lessonsTable.id.equals(lessonId));
+
+    return query.watchSingleOrNull().map((row) {
+      if (row == null) return null;
+      final lesson = row.readTable(_db.lessonsTable);
+      final progress = row.readTableOrNull(_db.localProgressTable);
+
+      return Lesson(
+        id: lesson.id,
+        unitId: lesson.unitId,
+        title: lesson.title,
+        contentType: lesson.contentType,
+        contentJson: lesson.contentJson,
+        orderIndex: lesson.orderIndex,
+        isCompleted: progress?.isCompleted ?? false,
+      );
+    });
+  }
+
+  Future<void> syncCourses() async {
+    if (_userId == null) return; // Or handle error
+    try {
+      // 1. Fetch all courses
+      final coursesResponse = await _api.get('/api/courses', queryParameters: {'userId': _userId});
+      // ... (rest of logic, passing userId where needed) ...
+      // Note: /api/courses/:id also needs userId for completion status
+      // But wait, the current impl of /api/courses returns completed_count which depends on userId.
+      // So passing query param is correct.
+      
+      final coursesData = coursesResponse.data as List;
+
+      await _db.batch((batch) {
+        for (final c in coursesData) {
+          batch.insert(
+            _db.coursesTable,
+            CoursesTableCompanion.insert(
+              id: c['id'],
+              slug: c['slug'],
+              title: c['title'],
+              description: Value(c['description']),
+              level: c['level'],
+              trackType: c['track_type'],
+              thumbnailUrl: Value(c['thumbnail_url']),
+              version: Value(c['version'] ?? 1),
+              completedLessonsCount: Value(c['completed_count'] ?? 0),
+              totalLessonsCount: Value(c['total_lessons'] ?? 0),
+            ),
+            mode: InsertMode.insertOrReplace,
+          );
+        }
+      });
+
+      // 2. Fetch details for each course to get units
+      for (final c in coursesData) {
+        final courseId = c['id'];
+        try {
+          final courseDetailResponse = await _api.get('/api/courses/$courseId', queryParameters: {'userId': _userId});
+          final unitsData = courseDetailResponse.data['units'] as List;
+
+          await _db.batch((batch) {
+            for (final u in unitsData) {
+              batch.insert(
+                _db.unitsTable,
+                UnitsTableCompanion.insert(
+                  id: u['id'],
+                  courseId: u['course_id'],
+                  title: u['title'],
+                  orderIndex: u['order_index'],
+                ),
+                mode: InsertMode.insertOrReplace,
+              );
+            }
+          });
+
+          // 3. Fetch lessons for each unit
+          for (final u in unitsData) {
+            final unitId = u['id'];
+            final lessonsResponse = await _api.get('/api/units/$unitId/lessons');
+            final lessonsData = lessonsResponse.data as List;
+
+            // 4. Fetch full content for each lesson
+            for (final l in lessonsData) {
+              final lessonId = l['id'];
+              final lessonDetailResponse = await _api.get('/api/lessons/$lessonId');
+              final lessonDetail = lessonDetailResponse.data;
+
+              await _db.into(_db.lessonsTable).insert(
+                LessonsTableCompanion.insert(
+                  id: lessonDetail['id'],
+                  unitId: lessonDetail['unit_id'],
+                  title: lessonDetail['title'],
+                  contentType: lessonDetail['content_type'],
+                  orderIndex: lessonDetail['order_index'],
+                  contentJson: Value(lessonDetail['content_json']),
+                ),
+                mode: InsertMode.insertOrReplace,
+              );
+            }
+          }
+
+          // 5. Sync Progress (Completed Lessons)
+          if (courseDetailResponse.data['completedLessonIds'] != null) {
+            final completedIds = List<String>.from(courseDetailResponse.data['completedLessonIds']);
+            await _db.batch((batch) {
+              for (final lessonId in completedIds) {
+                batch.insert(
+                  _db.localProgressTable,
+                  LocalProgressTableCompanion.insert(
+                    lessonId: lessonId,
+                    isCompleted: const Value(true),
+                    lastUpdated: Value(DateTime.now()),
+                  ),
+                  mode: InsertMode.insertOrReplace,
+                );
+              }
+            });
+          }
+        } catch (e) {
+          print('Error syncing course details for $courseId: $e');
+        }
+      }
+    } catch (e) {
+      print('Error syncing courses: $e');
+    }
+  }
+
+  Future<void> saveLessonProgress({
+    required String lessonId,
+    required String courseId,
+    required bool isCorrect,
+    String interactionType = 'COMPLETION',
+  }) async {
+    if (_userId == null) return;
+    try {
+      await _api.post('/api/progress', data: {
+        'userId': _userId,
+        'lessonId': lessonId,
+        'courseId': courseId,
+        'isCorrect': isCorrect,
+        'interactionType': interactionType,
+      });
+      // Insert local progress immediately for optimistic UI
+      await _db.into(_db.localProgressTable).insert(
+        LocalProgressTableCompanion.insert(
+          lessonId: lessonId,
+          isCompleted: const Value(true),
+          lastUpdated: Value(DateTime.now()),
+        ),
+        mode: InsertMode.insertOrReplace,
+      );
+    } catch (e) {
+      print('Network Error: $e. Queueing request.');
+      // Queue for offline sync
+      await _db.into(_db.pendingRequestsTable).insert(
+        PendingRequestsTableCompanion.insert(
+          url: '/api/progress',
+          method: 'POST',
+          dataJson: jsonEncode(requestData),
+        ),
+      );
+    }
+  }
+
+  Future<void> processPendingRequests() async {
+    final pendingRequests = await _db.select(_db.pendingRequestsTable).get();
+    if (pendingRequests.isEmpty) return;
+
+    print('Processing ${pendingRequests.length} pending requests...');
+
+    for (final req in pendingRequests) {
+      try {
+        final data = jsonDecode(req.dataJson);
+        await _api.request(
+          req.url,
+          data: data,
+          options: Options(method: req.method),
+        );
+        // If successful, delete from queue
+        await (_db.delete(_db.pendingRequestsTable)
+              ..where((tbl) => tbl.id.equals(req.id)))
+            .go();
+        print('Synced request ${req.id}');
+      } catch (e) {
+        print('Failed to sync request ${req.id}: $e');
+        // Leave in queue to retry later
+      }
+    }
+  }
+
+  // Mock Sync removed/replaced
+}
+
+@riverpod
+CourseRepository courseRepository(Ref ref) {
+  final db = ref.watch(appDatabaseProvider);
+  final api = ref.watch(apiClientProvider);
+  final user = ref.watch(currentUserProvider);
+  return CourseRepository(db, api, user?.id);
+}
+
+@riverpod
+Stream<List<Course>> courseList(Ref ref) {
+  final repo = ref.watch(courseRepositoryProvider);
+  return repo.watchCourses();
+}
+
+@riverpod
+Stream<Course?> courseDetail(Ref ref, String id) {
+  return ref.watch(courseRepositoryProvider).watchCourse(id);
+}
+
+@riverpod
+Stream<List<Unit>> courseUnits(Ref ref, String courseId) {
+  return ref.watch(courseRepositoryProvider).watchUnits(courseId);
+}
+
+@riverpod
+Stream<List<Lesson>> unitLessons(Ref ref, String unitId) {
+  return ref.watch(courseRepositoryProvider).watchLessons(unitId);
+}
+
+@riverpod
+Stream<Lesson?> lessonDetail(Ref ref, String id) {
+  return ref.watch(courseRepositoryProvider).watchLesson(id);
+}
