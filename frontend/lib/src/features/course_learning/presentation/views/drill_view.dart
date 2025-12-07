@@ -5,12 +5,19 @@ import 'package:just_audio/just_audio.dart';
 import '../../../../../../l10n/generated/app_localizations.dart';
 import '../../../../core/services/asset_service.dart';
 import '../../../../core/utils/localization_helper.dart';
+import '../recording_widget.dart';
 
 class DrillView extends ConsumerStatefulWidget {
   final String? contentJson;
   final VoidCallback onComplete;
+  final String lessonId;
 
-  const DrillView({super.key, required this.contentJson, required this.onComplete});
+  const DrillView({
+    super.key, 
+    required this.contentJson, 
+    required this.onComplete,
+    required this.lessonId,
+  });
 
   @override
   ConsumerState<DrillView> createState() => _DrillViewState();
@@ -61,6 +68,7 @@ class _DrillViewState extends ConsumerState<DrillView> {
               final item = items[index];
               final hasAudio = item['audio'] != null;
               final isPlaying = _playingIndex == index;
+              final resultText = item['result'] ?? '';
 
               return Card(
                 margin: const EdgeInsets.only(bottom: 12),
@@ -99,8 +107,16 @@ class _DrillViewState extends ConsumerState<DrillView> {
                           children: [
                             const Icon(Icons.check_circle_outline, size: 16, color: Colors.green),
                             const SizedBox(width: 8),
-                            Expanded(child: Text(getLocalized(context, item['result'] ?? ''), style: const TextStyle(fontStyle: FontStyle.italic))),
+                            Expanded(child: Text(getLocalized(context, resultText), style: const TextStyle(fontStyle: FontStyle.italic))),
                           ],
+                        ),
+                      ),
+                      const Divider(height: 24),
+                      Center(
+                        child: RecordingWidget(
+                          id: 'drill_$index',
+                          referenceText: resultText,
+                          lessonId: widget.lessonId,
                         ),
                       ),
                     ],

@@ -13,10 +13,10 @@ class AuthService {
   User? get currentUser => _auth.currentUser;
 
   Future<void> initialize() async {
-    try {
+    // Firebase should be initialized in main.dart
+    // This method is kept for compatibility or lazy init if needed
+    if (Firebase.apps.isEmpty) {
       await Firebase.initializeApp();
-    } catch (e) {
-      print('Firebase initialization failed (Expected if no config files): $e');
     }
   }
 

@@ -2,9 +2,9 @@ import 'dart:convert';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../../../../../l10n/generated/app_localizations.dart';
-import '../../../../core/api/api_client.dart';
 import '../../../../core/presentation/widgets/chat_bubble.dart';
 import '../../../../core/presentation/widgets/typing_indicator.dart';
+import '../controllers/chat_controller.dart';
 
 class RoleplayView extends ConsumerStatefulWidget {
   final String? contentJson;
@@ -18,74 +18,19 @@ class RoleplayView extends ConsumerStatefulWidget {
 
 class _RoleplayViewState extends ConsumerState<RoleplayView> {
   final TextEditingController _textController = TextEditingController();
-  final List<Map<String, String>> _messages = [];
   final ScrollController _scrollController = ScrollController();
-  bool _isTyping = false;
-  late String _systemPrompt;
 
   @override
   void initState() {
     super.initState();
-    if (widget.contentJson != null) {
-      final content = jsonDecode(widget.contentJson!);
-      _systemPrompt = content['system_prompt'] ?? 'You are a helpful language tutor.';
-      final initialMessage = content['initial_message'];
-      if (initialMessage != null) {
-        _messages.add({'role': 'assistant', 'content': initialMessage});
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (widget.contentJson != null) {
+        final content = jsonDecode(widget.contentJson!);
+        final systemPrompt = content['system_prompt'] ?? 'You are a helpful language tutor.';
+        final initialMessage = content['initial_message'];
+        ref.read(chatControllerProvider.notifier).initialize(systemPrompt, initialMessage);
       }
-    }
-  }
-
-  Future<void> _sendMessage() async {
-    final text = _textController.text.trim();
-    if (text.isEmpty) return;
-
-    setState(() {
-      _messages.add({'role': 'user', 'content': text});
-      _isTyping = true;
-      _textController.clear();
     });
-    _scrollToBottom();
-
-    try {
-      final api = ref.read(apiClientProvider);
-      
-      // Construct message history for the API
-      final apiMessages = [
-        {'role': 'system', 'content': _systemPrompt},
-        ..._messages
-      ];
-
-      final response = await api.post('/api/ai/chat', data: {'messages': apiMessages});
-      var aiReply = response.data['response'] as String;
-      String? correction;
-
-      // Parse Correction
-      final correctionRegex = RegExp(r'\[CORRECTION:(.*?)\]', dotAll: true);
-      final match = correctionRegex.firstMatch(aiReply);
-      if (match != null) {
-        correction = match.group(1)?.trim();
-        aiReply = aiReply.replaceAll(match.group(0)!, '').trim();
-      }
-
-      if (mounted) {
-        setState(() {
-          final message = {'role': 'assistant', 'content': aiReply};
-          if (correction != null) {
-            message['correction'] = correction;
-          }
-          _messages.add(message);
-          _isTyping = false;
-        });
-        _scrollToBottom();
-      }
-    } catch (e) {
-      print('Chat error: $e');
-      if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Failed to get response')));
-        setState(() => _isTyping = false);
-      }
-    }
   }
 
   void _scrollToBottom() {
@@ -103,15 +48,29 @@ class _RoleplayViewState extends ConsumerState<RoleplayView> {
   @override
   Widget build(BuildContext context) {
     final l10n = AppLocalizations.of(context)!;
+    final chatState = ref.watch(chatControllerProvider);
+    final messages = chatState.messages;
+    final isTyping = chatState.isTyping;
+
+    // Auto-scroll when messages change
+    ref.listen(chatControllerProvider, (previous, next) {
+      if (previous?.messages.length != next.messages.length) {
+        _scrollToBottom();
+      }
+      if (next.error != null) {
+        ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('Error: ${next.error}')));
+      }
+    });
+
     return Column(
       children: [
         Expanded(
           child: ListView.builder(
             controller: _scrollController,
             padding: const EdgeInsets.all(16),
-            itemCount: _messages.length + (_isTyping ? 1 : 0),
+            itemCount: messages.length + (isTyping ? 1 : 0),
             itemBuilder: (context, index) {
-              if (index == _messages.length) {
+              if (index == messages.length) {
                 return const Padding(
                   padding: EdgeInsets.symmetric(vertical: 8.0, horizontal: 4.0),
                   child: Row(
@@ -128,13 +87,13 @@ class _RoleplayViewState extends ConsumerState<RoleplayView> {
                 );
               }
 
-              final msg = _messages[index];
+              final msg = messages[index];
               final isUser = msg['role'] == 'user';
 
               return ChatBubble(
                 message: msg['content'] ?? '',
                 isMe: isUser,
-                displayName: isUser ? 'You' : 'Carlos', // Could be dynamic
+                displayName: isUser ? 'You' : 'Carlos',
                 correction: msg['correction'],
               );
             },
@@ -153,12 +112,23 @@ class _RoleplayViewState extends ConsumerState<RoleplayView> {
                     border: const OutlineInputBorder(),
                     contentPadding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
                   ),
-                  onSubmitted: (_) => _sendMessage(),
+                  onSubmitted: (text) {
+                    if (text.isNotEmpty) {
+                      ref.read(chatControllerProvider.notifier).sendMessage(text);
+                      _textController.clear();
+                    }
+                  },
                 ),
               ),
               const SizedBox(width: 8),
               IconButton.filled(
-                onPressed: _sendMessage,
+                onPressed: () {
+                  final text = _textController.text.trim();
+                  if (text.isNotEmpty) {
+                    ref.read(chatControllerProvider.notifier).sendMessage(text);
+                    _textController.clear();
+                  }
+                },
                 icon: const Icon(Icons.send),
               ),
             ],

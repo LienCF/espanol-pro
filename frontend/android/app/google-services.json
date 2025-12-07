@@ -1,0 +1,29 @@
+{
+  "project_info": {
+    "project_number": "456510707392",
+    "project_id": "espanol-pro-xamide",
+    "storage_bucket": "espanol-pro-xamide.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:456510707392:android:e95dc57d52d1929c427f25",
+        "android_client_info": {
+          "package_name": "com.example.frontend"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyDcaDTVHY4fGUK90JkMs0VU-IIP3q8RpRE"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}

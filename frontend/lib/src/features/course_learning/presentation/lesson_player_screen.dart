@@ -102,11 +102,13 @@ class _LessonPlayerScreenState extends ConsumerState<LessonPlayerScreen> {
         return DialogueView(
           contentJson: lesson.contentJson,
           onComplete: () => _markComplete(context),
+          lessonId: lesson.id,
         );
       case 'DRILL':
         return DrillView(
           contentJson: lesson.contentJson,
           onComplete: () => _markComplete(context),
+          lessonId: lesson.id,
         );
       case 'AUDIO_DRILL':
         return Center(child: Text(l10n.audioDrillComingSoon));

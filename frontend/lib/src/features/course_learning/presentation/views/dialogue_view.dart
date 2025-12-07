@@ -10,8 +10,14 @@ import '../recording_widget.dart';
 class DialogueView extends ConsumerStatefulWidget {
   final String? contentJson;
   final VoidCallback onComplete;
+  final String lessonId;
 
-  const DialogueView({super.key, required this.contentJson, required this.onComplete});
+  const DialogueView({
+    super.key, 
+    required this.contentJson, 
+    required this.onComplete,
+    required this.lessonId,
+  });
 
   @override
   ConsumerState<DialogueView> createState() => _DialogueViewState();
@@ -121,10 +127,9 @@ class _DialogueViewState extends ConsumerState<DialogueView> {
                     child: Padding(
                       padding: const EdgeInsets.only(right: 8.0),
                       child: RecordingWidget(
+                        id: 'dialogue_$index',
                         referenceText: line['es'] ?? '',
-                        onRecordingComplete: (path) {
-                          print('Recorded to: $path');
-                        },
+                        lessonId: widget.lessonId,
                       ),
                     ),
                   ),

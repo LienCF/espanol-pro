@@ -3,6 +3,7 @@ import 'package:freezed_annotation/freezed_annotation.dart';
 import 'package:riverpod_annotation/riverpod_annotation.dart';
 import 'package:frontend/src/core/services/audio_recorder_service.dart';
 import 'package:frontend/src/features/course_learning/data/speech_evaluation_repository.dart';
+import 'package:frontend/src/features/course_learning/data/learning_repository.dart';
 import 'package:frontend/src/features/course_learning/domain/speech_evaluation_result.dart';
 
 part 'speech_evaluation_controller.freezed.dart';
@@ -33,7 +34,7 @@ class SpeechEvaluationController extends _$SpeechEvaluationController {
     }
   }
 
-  Future<void> stopRecordingAndEvaluate(String referenceText) async {
+  Future<void> stopRecordingAndEvaluate(String referenceText, String lessonId) async {
     try {
       // 1. Stop Recording
       final path = await ref.read(audioRecorderServiceProvider).stopRecording();
@@ -52,6 +53,12 @@ class SpeechEvaluationController extends _$SpeechEvaluationController {
       );
       
       state = SpeechEvaluationState.success(result);
+
+      // 3. Record Attempt (BKT)
+      await ref.read(learningRepositoryProvider).recordAttempt(
+        lessonId: lessonId,
+        isCorrect: result.isMatch,
+      );
       
     } catch (e) {
       state = SpeechEvaluationState.error(e.toString());

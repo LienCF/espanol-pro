@@ -337,6 +337,67 @@ app.post('/api/ai/chat', async (c) => {
   }
 })
 
+// 14. Record Learning Attempt (BKT)
+app.post('/api/learning/attempt', async (c) => {
+  try {
+    const { userId: bodyUserId, lessonId, isCorrect } = await c.req.json()
+    const user = c.get('user') as any
+    const userId = user?.sub || bodyUserId
+
+    if (!userId || !lessonId || isCorrect === undefined) {
+      return c.json({ error: 'Missing required fields' }, 400)
+    }
+
+    // 1. Find KC for this lesson
+    const lesson = await c.env.DB.prepare(
+      'SELECT kc_id FROM lessons WHERE id = ?'
+    ).bind(lessonId).first()
+
+    if (!lesson || !lesson.kc_id) {
+      // Lesson has no associated knowledge component, skip BKT
+      return c.json({ skipped: true, reason: 'No KC linked' })
+    }
+
+    const kcId = lesson.kc_id as string
+
+    // 2. Get current mastery state
+    const state = await c.env.DB.prepare(
+      'SELECT p_know FROM user_kc_state WHERE user_id = ? AND kc_id = ?'
+    ).bind(userId, kcId).first()
+
+    const p_prev = (state?.p_know as number) || 0.01 // Default prior
+
+    // 3. Calculate new mastery
+    const p_new = calculateNewMastery(p_prev, isCorrect)
+
+    // 4. Update State
+    await c.env.DB.prepare(`
+      INSERT INTO user_kc_state (user_id, kc_id, p_know, last_practice_time)
+      VALUES (?, ?, ?, ?)
+      ON CONFLICT(user_id, kc_id) DO UPDATE SET
+        p_know = excluded.p_know,
+        last_practice_time = excluded.last_practice_time
+    `).bind(userId, kcId, p_new, Math.floor(Date.now() / 1000)).run()
+
+    // 5. Log interaction (optional but good for analytics)
+    await c.env.DB.prepare(`
+      INSERT INTO study_logs (user_id, lesson_id, interaction_type, is_correct)
+      VALUES (?, ?, ?, ?)
+    `).bind(userId, lessonId, 'ATTEMPT', isCorrect ? 1 : 0).run()
+
+    return c.json({ 
+      kcId,
+      previous_mastery: p_prev,
+      new_mastery: p_new,
+      delta: p_new - p_prev
+    })
+
+  } catch (e: any) {
+    console.error('BKT Error:', e)
+    return c.json({ error: e.message }, 500)
+  }
+})
+
 // 9. Serve Audio from R2
 app.get('/:filename', async (c) => {
   const filename = c.req.param('filename')
