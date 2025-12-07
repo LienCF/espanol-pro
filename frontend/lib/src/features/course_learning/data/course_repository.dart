@@ -100,28 +100,24 @@ class CourseRepository {
   }
 
   Stream<Lesson?> watchLesson(String lessonId) {
-    final query = _db.select(_db.lessonsTable).join([
-      leftOuterJoin(
-        _db.localProgressTable,
-        _db.localProgressTable.lessonId.equalsExp(_db.lessonsTable.id),
-      ),
-    ])..where(_db.lessonsTable.id.equals(lessonId));
-
-    return query.watchSingleOrNull().map((row) {
-      if (row == null) return null;
-      final lesson = row.readTable(_db.lessonsTable);
-      final progress = row.readTableOrNull(_db.localProgressTable);
-
-      return Lesson(
-        id: lesson.id,
-        unitId: lesson.unitId,
-        title: lesson.title,
-        contentType: lesson.contentType,
-        contentJson: lesson.contentJson,
-        orderIndex: lesson.orderIndex,
-        isCompleted: progress?.isCompleted ?? false,
-      );
-    });
+    // Simplified query without JOIN to debug WASM type error
+    return (_db.select(_db.lessonsTable)..where((t) => t.id.equals(lessonId)))
+        .watchSingleOrNull()
+        .map((row) {
+          if (row == null) return null;
+          
+          // Note: Progress sync is temporarily disabled in this view stream to fix WASM crash.
+          // Progress is still tracked in localProgressTable but not joined here.
+          return Lesson(
+            id: row.id,
+            unitId: row.unitId,
+            title: row.title,
+            contentType: row.contentType,
+            contentJson: row.contentJson,
+            orderIndex: row.orderIndex,
+            isCompleted: false, 
+          );
+        });
   }
 
   // Helper methods for safe type conversion
