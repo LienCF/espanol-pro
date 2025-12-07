@@ -209,6 +209,7 @@ class CourseRepository {
 
           await _db.batch((batch) {
             for (final u in unitsData) {
+              // Insert Unit
               batch.insert(
                 _db.unitsTable,
                 UnitsTableCompanion.insert(
@@ -219,47 +220,27 @@ class CourseRepository {
                 ),
                 mode: InsertMode.insertOrReplace,
               );
+
+              // Insert Lessons (Nested)
+              if (u['lessons'] != null) {
+                final lessonsData = u['lessons'] as List;
+                for (final l in lessonsData) {
+                  batch.insert(
+                    _db.lessonsTable,
+                    LessonsTableCompanion.insert(
+                      id: l['id'],
+                      unitId: u['id'],
+                      title: l['title'],
+                      contentType: l['content_type'],
+                      contentJson: Value(l['content_json']), // Pre-cache content
+                      orderIndex: l['order_index'],
+                    ),
+                    mode: InsertMode.insertOrReplace,
+                  );
+                }
+              }
             }
           });
-
-          // 4. Fetch lessons metadata
-          for (final u in unitsData) {
-            final unitId = u['id'];
-            final lessonsResponse = await _api.get('/api/units/$unitId/lessons');
-            final lessonsData = lessonsResponse.data as List;
-
-            // Detect and delete stale lessons for this unit
-            final remoteLessonIds = lessonsData.map((l) => l['id'] as String).toSet();
-            final localLessons = await (_db.select(_db.lessonsTable)..where((t) => t.unitId.equals(unitId))).get();
-            final localLessonIds = localLessons.map((l) => l.id).toSet();
-            final lessonsToDelete = localLessonIds.difference(remoteLessonIds);
-
-            if (lessonsToDelete.isNotEmpty) {
-              print('Deleting stale lessons for unit $unitId: $lessonsToDelete');
-              await (_db.delete(_db.lessonsTable)..where((t) => t.id.isIn(lessonsToDelete))).go();
-            }
-
-            await _db.batch((batch) {
-              for (final l in lessonsData) {
-                batch.insert(
-                  _db.lessonsTable,
-                  LessonsTableCompanion.insert(
-                    id: l['id'],
-                    unitId: unitId,
-                    title: l['title'],
-                    contentType: l['content_type'],
-                    orderIndex: l['order_index'],
-                  ),
-                  onConflict: DoUpdate((old) => LessonsTableCompanion(
-                    title: Value(l['title']),
-                    contentType: Value(l['content_type']),
-                    orderIndex: Value(l['order_index']),
-                    contentJson: const Value(null), // Invalidate cache to force re-fetch
-                  )),
-                );
-              }
-            });
-          }
 
           // 5. Sync Progress
           if (courseDetailResponse.data['completedLessonIds'] != null) {
