@@ -71,6 +71,19 @@ class _DrillViewState extends ConsumerState<DrillView> {
       return Center(child: Text('Error loading content: $e'));
     }
 
+    if (items.isEmpty) {
+      return SingleChildScrollView(
+        child: Padding(
+          padding: const EdgeInsets.all(16.0),
+          child: SelectableText(
+            'Debug Info:\n'
+            'RuntimeType: ${jsonDecode(widget.contentJson!).runtimeType}\n'
+            'Content: ${widget.contentJson}'
+          ),
+        ),
+      );
+    }
+
     return Column(
       children: [
         Expanded(
