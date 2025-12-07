@@ -288,3 +288,19 @@
     *   **Scoring:** Enhanced `scoring.ts` with `analyzePronunciation` which compares standard IPA vs transcribed IPA to detect specific errors (e.g., trilled 'r' vs tap).
     *   **API:** Updated `evaluate-speech` to return a `feedback` list.
     *   **UI:** Updated `RecordingWidget` to show an info icon when feedback is available, opening a dialog with specific pronunciation tips.
+
+### 2025-12-07
+*   **Task:** Phase 2 Completion & Web Stabilization
+*   **Status:** Completed
+*   **Details:**
+    *   **AI Integration:**
+        *   **Speech Evaluation:** Implemented `POST /api/ai/evaluate-speech` in backend with scoring logic. Built `SpeechEvaluationController` and `RecordingWidget` in frontend.
+        *   **Roleplay Chat:** Implemented `POST /api/ai/chat` in backend using Llama 3. Built `RoleplayView` and `ChatController` in frontend.
+        *   **BKT Tracking:** Added `BKTService` in backend to track mastery probability.
+    *   **Infrastructure:**
+        *   **Firebase Auth:** Generated `firebase_options.dart` and `google-services.json` for all platforms. Reverted temporary "skip auth" logic to enforce real authentication.
+        *   **Web Support:** Added `sqlite3.wasm` to `web/` assets to fix Drift initialization crash. Updated `WebDatabase` connection logic.
+    *   **Deployment:**
+        *   Built `flutter build web --release`.
+        *   Deployed frontend to Cloudflare Pages (`espanol-pro-web`).
+        *   Deployed backend to Cloudflare Workers (`espanol-pro-backend`).

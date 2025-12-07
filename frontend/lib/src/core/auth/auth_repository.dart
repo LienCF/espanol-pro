@@ -2,6 +2,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:riverpod_annotation/riverpod_annotation.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:dio/dio.dart';
+import 'package:firebase_auth/firebase_auth.dart' as firebase;
 import '../api/api_client.dart';
 import '../services/auth_service.dart';
 import 'user.dart';
@@ -25,8 +26,16 @@ class AuthRepository {
           token = await _authService.getIdToken();
         } catch (e) {
           print('Firebase Login Failed: $e');
-          // Fallback or rethrow? For this scaffold, we might want to fallback to dev-login
-          // if Firebase isn't configured.
+          // Auto-Register fallback
+          if (e is firebase.FirebaseAuthException && (e.code == 'user-not-found' || e.code == 'invalid-credential')) {
+            print('User not found, attempting registration...');
+            try {
+              await _authService.createUserWithEmailAndPassword(email, password);
+              token = await _authService.getIdToken();
+            } catch (regError) {
+              print('Registration failed: $regError');
+            }
+          }
         }
       }
 

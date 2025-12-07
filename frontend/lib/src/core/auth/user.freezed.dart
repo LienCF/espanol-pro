@@ -15,7 +15,7 @@ T _$identity<T>(T value) => value;
 /// @nodoc
 mixin _$User {
 
- String get id; String get email;@JsonKey(name: 'display_name') String? get displayName;@JsonKey(name: 'is_premium') bool get isPremium;
+ String get id; String get email;@JsonKey(name: 'display_name') String? get displayName;@JsonKey(name: 'is_premium', fromJson: _boolFromInt) bool get isPremium;
 /// Create a copy of User
 /// with the given fields replaced by the non-null parameter values.
 @JsonKey(includeFromJson: false, includeToJson: false)
@@ -48,7 +48,7 @@ abstract mixin class $UserCopyWith<$Res>  {
   factory $UserCopyWith(User value, $Res Function(User) _then) = _$UserCopyWithImpl;
 @useResult
 $Res call({
- String id, String email,@JsonKey(name: 'display_name') String? displayName,@JsonKey(name: 'is_premium') bool isPremium
+ String id, String email,@JsonKey(name: 'display_name') String? displayName,@JsonKey(name: 'is_premium', fromJson: _boolFromInt) bool isPremium
 });
 
 
@@ -156,7 +156,7 @@ return $default(_that);case _:
 /// }
 /// ```
 
-@optionalTypeArgs TResult maybeWhen<TResult extends Object?>(TResult Function( String id,  String email, @JsonKey(name: 'display_name')  String? displayName, @JsonKey(name: 'is_premium')  bool isPremium)?  $default,{required TResult orElse(),}) {final _that = this;
+@optionalTypeArgs TResult maybeWhen<TResult extends Object?>(TResult Function( String id,  String email, @JsonKey(name: 'display_name')  String? displayName, @JsonKey(name: 'is_premium', fromJson: _boolFromInt)  bool isPremium)?  $default,{required TResult orElse(),}) {final _that = this;
 switch (_that) {
 case _User() when $default != null:
 return $default(_that.id,_that.email,_that.displayName,_that.isPremium);case _:
@@ -177,7 +177,7 @@ return $default(_that.id,_that.email,_that.displayName,_that.isPremium);case _:
 /// }
 /// ```
 
-@optionalTypeArgs TResult when<TResult extends Object?>(TResult Function( String id,  String email, @JsonKey(name: 'display_name')  String? displayName, @JsonKey(name: 'is_premium')  bool isPremium)  $default,) {final _that = this;
+@optionalTypeArgs TResult when<TResult extends Object?>(TResult Function( String id,  String email, @JsonKey(name: 'display_name')  String? displayName, @JsonKey(name: 'is_premium', fromJson: _boolFromInt)  bool isPremium)  $default,) {final _that = this;
 switch (_that) {
 case _User():
 return $default(_that.id,_that.email,_that.displayName,_that.isPremium);case _:
@@ -197,7 +197,7 @@ return $default(_that.id,_that.email,_that.displayName,_that.isPremium);case _:
 /// }
 /// ```
 
-@optionalTypeArgs TResult? whenOrNull<TResult extends Object?>(TResult? Function( String id,  String email, @JsonKey(name: 'display_name')  String? displayName, @JsonKey(name: 'is_premium')  bool isPremium)?  $default,) {final _that = this;
+@optionalTypeArgs TResult? whenOrNull<TResult extends Object?>(TResult? Function( String id,  String email, @JsonKey(name: 'display_name')  String? displayName, @JsonKey(name: 'is_premium', fromJson: _boolFromInt)  bool isPremium)?  $default,) {final _that = this;
 switch (_that) {
 case _User() when $default != null:
 return $default(_that.id,_that.email,_that.displayName,_that.isPremium);case _:
@@ -212,13 +212,13 @@ return $default(_that.id,_that.email,_that.displayName,_that.isPremium);case _:
 @JsonSerializable()
 
 class _User implements User {
-  const _User({required this.id, required this.email, @JsonKey(name: 'display_name') this.displayName, @JsonKey(name: 'is_premium') this.isPremium = false});
+  const _User({required this.id, required this.email, @JsonKey(name: 'display_name') this.displayName, @JsonKey(name: 'is_premium', fromJson: _boolFromInt) this.isPremium = false});
   factory _User.fromJson(Map<String, dynamic> json) => _$UserFromJson(json);
 
 @override final  String id;
 @override final  String email;
 @override@JsonKey(name: 'display_name') final  String? displayName;
-@override@JsonKey(name: 'is_premium') final  bool isPremium;
+@override@JsonKey(name: 'is_premium', fromJson: _boolFromInt) final  bool isPremium;
 
 /// Create a copy of User
 /// with the given fields replaced by the non-null parameter values.
@@ -253,7 +253,7 @@ abstract mixin class _$UserCopyWith<$Res> implements $UserCopyWith<$Res> {
   factory _$UserCopyWith(_User value, $Res Function(_User) _then) = __$UserCopyWithImpl;
 @override @useResult
 $Res call({
- String id, String email,@JsonKey(name: 'display_name') String? displayName,@JsonKey(name: 'is_premium') bool isPremium
+ String id, String email,@JsonKey(name: 'display_name') String? displayName,@JsonKey(name: 'is_premium', fromJson: _boolFromInt) bool isPremium
 });
 
 

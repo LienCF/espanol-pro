@@ -61,7 +61,7 @@ final class SpeechEvaluationControllerProvider
 }
 
 String _$speechEvaluationControllerHash() =>
-    r'2d9c5df3dcc40c19f4669d04b1df8ac1d0ef0f06';
+    r'e207dd46859bc9c24e387800286db8ee68803297';
 
 final class SpeechEvaluationControllerFamily extends $Family
     with

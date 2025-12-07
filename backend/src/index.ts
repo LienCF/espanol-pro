@@ -175,6 +175,52 @@ app.get('/api/courses', async (c) => {
   }
 })
 
+// 2. Get course details (Full structure)
+app.get('/api/courses/:id', async (c) => {
+  const courseId = c.req.param('id')
+  const user = c.get('user') as any
+  const userId = user?.sub || c.req.query('userId') || 'test_user_1'
+
+  try {
+    // 1. Get Course
+    const course = await c.env.DB.prepare('SELECT * FROM courses WHERE id = ?').bind(courseId).first()
+    
+    if (!course) return c.json({ error: 'Course not found' }, 404)
+
+    // 2. Get Units
+    const { results: units } = await c.env.DB.prepare(
+      'SELECT * FROM units WHERE course_id = ? ORDER BY order_index'
+    ).bind(courseId).all()
+
+    // 3. Get Lessons for these units
+    // Note: is_completed logic here is simplified. Ideally, join with user_course_progress or study_logs more robustly.
+    // For now, let's just return lessons. Frontend handles progress sync separately via list endpoint or local logic.
+    // Actually, let's try to fetch completion status if possible.
+    // But study_logs might be huge. Let's stick to structure.
+    const { results: lessons } = await c.env.DB.prepare(`
+      SELECT l.* 
+      FROM lessons l
+      JOIN units u ON l.unit_id = u.id
+      WHERE u.course_id = ?
+      ORDER BY l.order_index
+    `).bind(courseId).all()
+
+    // Assemble response
+    const unitsWithLessons = units.map((unit: any) => ({
+      ...unit,
+      lessons: lessons.filter((l: any) => l.unit_id === unit.id)
+    }))
+
+    return c.json({
+      ...course,
+      units: unitsWithLessons
+    })
+  } catch (e: any) {
+    console.error(e)
+    return c.json({ error: e.message }, 500)
+  }
+})
+
 // ... existing code ...
 
 // 6. Auth (Login / Exchange Token)
