@@ -56,3 +56,13 @@ class PendingRequestsTable extends Table {
   TextColumn get dataJson => text()(); // JSON body
   DateTimeColumn get createdAt => dateTime().withDefault(currentDateAndTime)();
 }
+
+class OfflineAssetsTable extends Table {
+  TextColumn get url => text()(); // Remote URL (Primary Key)
+  TextColumn get localPath => text()(); // Local file system path
+  IntColumn get fileSize => integer().nullable()();
+  DateTimeColumn get downloadedAt => dateTime().withDefault(currentDateAndTime)();
+
+  @override
+  Set<Column> get primaryKey => {url};
+}

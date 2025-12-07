@@ -2043,6 +2043,330 @@ class PendingRequestsTableCompanion
   }
 }
 
+class $OfflineAssetsTableTable extends OfflineAssetsTable
+    with TableInfo<$OfflineAssetsTableTable, OfflineAssetsTableData> {
+  @override
+  final GeneratedDatabase attachedDatabase;
+  final String? _alias;
+  $OfflineAssetsTableTable(this.attachedDatabase, [this._alias]);
+  static const VerificationMeta _urlMeta = const VerificationMeta('url');
+  @override
+  late final GeneratedColumn<String> url = GeneratedColumn<String>(
+    'url',
+    aliasedName,
+    false,
+    type: DriftSqlType.string,
+    requiredDuringInsert: true,
+  );
+  static const VerificationMeta _localPathMeta = const VerificationMeta(
+    'localPath',
+  );
+  @override
+  late final GeneratedColumn<String> localPath = GeneratedColumn<String>(
+    'local_path',
+    aliasedName,
+    false,
+    type: DriftSqlType.string,
+    requiredDuringInsert: true,
+  );
+  static const VerificationMeta _fileSizeMeta = const VerificationMeta(
+    'fileSize',
+  );
+  @override
+  late final GeneratedColumn<int> fileSize = GeneratedColumn<int>(
+    'file_size',
+    aliasedName,
+    true,
+    type: DriftSqlType.int,
+    requiredDuringInsert: false,
+  );
+  static const VerificationMeta _downloadedAtMeta = const VerificationMeta(
+    'downloadedAt',
+  );
+  @override
+  late final GeneratedColumn<DateTime> downloadedAt = GeneratedColumn<DateTime>(
+    'downloaded_at',
+    aliasedName,
+    false,
+    type: DriftSqlType.dateTime,
+    requiredDuringInsert: false,
+    defaultValue: currentDateAndTime,
+  );
+  @override
+  List<GeneratedColumn> get $columns => [
+    url,
+    localPath,
+    fileSize,
+    downloadedAt,
+  ];
+  @override
+  String get aliasedName => _alias ?? actualTableName;
+  @override
+  String get actualTableName => $name;
+  static const String $name = 'offline_assets_table';
+  @override
+  VerificationContext validateIntegrity(
+    Insertable<OfflineAssetsTableData> instance, {
+    bool isInserting = false,
+  }) {
+    final context = VerificationContext();
+    final data = instance.toColumns(true);
+    if (data.containsKey('url')) {
+      context.handle(
+        _urlMeta,
+        url.isAcceptableOrUnknown(data['url']!, _urlMeta),
+      );
+    } else if (isInserting) {
+      context.missing(_urlMeta);
+    }
+    if (data.containsKey('local_path')) {
+      context.handle(
+        _localPathMeta,
+        localPath.isAcceptableOrUnknown(data['local_path']!, _localPathMeta),
+      );
+    } else if (isInserting) {
+      context.missing(_localPathMeta);
+    }
+    if (data.containsKey('file_size')) {
+      context.handle(
+        _fileSizeMeta,
+        fileSize.isAcceptableOrUnknown(data['file_size']!, _fileSizeMeta),
+      );
+    }
+    if (data.containsKey('downloaded_at')) {
+      context.handle(
+        _downloadedAtMeta,
+        downloadedAt.isAcceptableOrUnknown(
+          data['downloaded_at']!,
+          _downloadedAtMeta,
+        ),
+      );
+    }
+    return context;
+  }
+
+  @override
+  Set<GeneratedColumn> get $primaryKey => {url};
+  @override
+  OfflineAssetsTableData map(Map<String, dynamic> data, {String? tablePrefix}) {
+    final effectivePrefix = tablePrefix != null ? '$tablePrefix.' : '';
+    return OfflineAssetsTableData(
+      url: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}url'],
+      )!,
+      localPath: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}local_path'],
+      )!,
+      fileSize: attachedDatabase.typeMapping.read(
+        DriftSqlType.int,
+        data['${effectivePrefix}file_size'],
+      ),
+      downloadedAt: attachedDatabase.typeMapping.read(
+        DriftSqlType.dateTime,
+        data['${effectivePrefix}downloaded_at'],
+      )!,
+    );
+  }
+
+  @override
+  $OfflineAssetsTableTable createAlias(String alias) {
+    return $OfflineAssetsTableTable(attachedDatabase, alias);
+  }
+}
+
+class OfflineAssetsTableData extends DataClass
+    implements Insertable<OfflineAssetsTableData> {
+  final String url;
+  final String localPath;
+  final int? fileSize;
+  final DateTime downloadedAt;
+  const OfflineAssetsTableData({
+    required this.url,
+    required this.localPath,
+    this.fileSize,
+    required this.downloadedAt,
+  });
+  @override
+  Map<String, Expression> toColumns(bool nullToAbsent) {
+    final map = <String, Expression>{};
+    map['url'] = Variable<String>(url);
+    map['local_path'] = Variable<String>(localPath);
+    if (!nullToAbsent || fileSize != null) {
+      map['file_size'] = Variable<int>(fileSize);
+    }
+    map['downloaded_at'] = Variable<DateTime>(downloadedAt);
+    return map;
+  }
+
+  OfflineAssetsTableCompanion toCompanion(bool nullToAbsent) {
+    return OfflineAssetsTableCompanion(
+      url: Value(url),
+      localPath: Value(localPath),
+      fileSize: fileSize == null && nullToAbsent
+          ? const Value.absent()
+          : Value(fileSize),
+      downloadedAt: Value(downloadedAt),
+    );
+  }
+
+  factory OfflineAssetsTableData.fromJson(
+    Map<String, dynamic> json, {
+    ValueSerializer? serializer,
+  }) {
+    serializer ??= driftRuntimeOptions.defaultSerializer;
+    return OfflineAssetsTableData(
+      url: serializer.fromJson<String>(json['url']),
+      localPath: serializer.fromJson<String>(json['localPath']),
+      fileSize: serializer.fromJson<int?>(json['fileSize']),
+      downloadedAt: serializer.fromJson<DateTime>(json['downloadedAt']),
+    );
+  }
+  @override
+  Map<String, dynamic> toJson({ValueSerializer? serializer}) {
+    serializer ??= driftRuntimeOptions.defaultSerializer;
+    return <String, dynamic>{
+      'url': serializer.toJson<String>(url),
+      'localPath': serializer.toJson<String>(localPath),
+      'fileSize': serializer.toJson<int?>(fileSize),
+      'downloadedAt': serializer.toJson<DateTime>(downloadedAt),
+    };
+  }
+
+  OfflineAssetsTableData copyWith({
+    String? url,
+    String? localPath,
+    Value<int?> fileSize = const Value.absent(),
+    DateTime? downloadedAt,
+  }) => OfflineAssetsTableData(
+    url: url ?? this.url,
+    localPath: localPath ?? this.localPath,
+    fileSize: fileSize.present ? fileSize.value : this.fileSize,
+    downloadedAt: downloadedAt ?? this.downloadedAt,
+  );
+  OfflineAssetsTableData copyWithCompanion(OfflineAssetsTableCompanion data) {
+    return OfflineAssetsTableData(
+      url: data.url.present ? data.url.value : this.url,
+      localPath: data.localPath.present ? data.localPath.value : this.localPath,
+      fileSize: data.fileSize.present ? data.fileSize.value : this.fileSize,
+      downloadedAt: data.downloadedAt.present
+          ? data.downloadedAt.value
+          : this.downloadedAt,
+    );
+  }
+
+  @override
+  String toString() {
+    return (StringBuffer('OfflineAssetsTableData(')
+          ..write('url: $url, ')
+          ..write('localPath: $localPath, ')
+          ..write('fileSize: $fileSize, ')
+          ..write('downloadedAt: $downloadedAt')
+          ..write(')'))
+        .toString();
+  }
+
+  @override
+  int get hashCode => Object.hash(url, localPath, fileSize, downloadedAt);
+  @override
+  bool operator ==(Object other) =>
+      identical(this, other) ||
+      (other is OfflineAssetsTableData &&
+          other.url == this.url &&
+          other.localPath == this.localPath &&
+          other.fileSize == this.fileSize &&
+          other.downloadedAt == this.downloadedAt);
+}
+
+class OfflineAssetsTableCompanion
+    extends UpdateCompanion<OfflineAssetsTableData> {
+  final Value<String> url;
+  final Value<String> localPath;
+  final Value<int?> fileSize;
+  final Value<DateTime> downloadedAt;
+  final Value<int> rowid;
+  const OfflineAssetsTableCompanion({
+    this.url = const Value.absent(),
+    this.localPath = const Value.absent(),
+    this.fileSize = const Value.absent(),
+    this.downloadedAt = const Value.absent(),
+    this.rowid = const Value.absent(),
+  });
+  OfflineAssetsTableCompanion.insert({
+    required String url,
+    required String localPath,
+    this.fileSize = const Value.absent(),
+    this.downloadedAt = const Value.absent(),
+    this.rowid = const Value.absent(),
+  }) : url = Value(url),
+       localPath = Value(localPath);
+  static Insertable<OfflineAssetsTableData> custom({
+    Expression<String>? url,
+    Expression<String>? localPath,
+    Expression<int>? fileSize,
+    Expression<DateTime>? downloadedAt,
+    Expression<int>? rowid,
+  }) {
+    return RawValuesInsertable({
+      if (url != null) 'url': url,
+      if (localPath != null) 'local_path': localPath,
+      if (fileSize != null) 'file_size': fileSize,
+      if (downloadedAt != null) 'downloaded_at': downloadedAt,
+      if (rowid != null) 'rowid': rowid,
+    });
+  }
+
+  OfflineAssetsTableCompanion copyWith({
+    Value<String>? url,
+    Value<String>? localPath,
+    Value<int?>? fileSize,
+    Value<DateTime>? downloadedAt,
+    Value<int>? rowid,
+  }) {
+    return OfflineAssetsTableCompanion(
+      url: url ?? this.url,
+      localPath: localPath ?? this.localPath,
+      fileSize: fileSize ?? this.fileSize,
+      downloadedAt: downloadedAt ?? this.downloadedAt,
+      rowid: rowid ?? this.rowid,
+    );
+  }
+
+  @override
+  Map<String, Expression> toColumns(bool nullToAbsent) {
+    final map = <String, Expression>{};
+    if (url.present) {
+      map['url'] = Variable<String>(url.value);
+    }
+    if (localPath.present) {
+      map['local_path'] = Variable<String>(localPath.value);
+    }
+    if (fileSize.present) {
+      map['file_size'] = Variable<int>(fileSize.value);
+    }
+    if (downloadedAt.present) {
+      map['downloaded_at'] = Variable<DateTime>(downloadedAt.value);
+    }
+    if (rowid.present) {
+      map['rowid'] = Variable<int>(rowid.value);
+    }
+    return map;
+  }
+
+  @override
+  String toString() {
+    return (StringBuffer('OfflineAssetsTableCompanion(')
+          ..write('url: $url, ')
+          ..write('localPath: $localPath, ')
+          ..write('fileSize: $fileSize, ')
+          ..write('downloadedAt: $downloadedAt, ')
+          ..write('rowid: $rowid')
+          ..write(')'))
+        .toString();
+  }
+}
+
 abstract class _$AppDatabase extends GeneratedDatabase {
   _$AppDatabase(QueryExecutor e) : super(e);
   $AppDatabaseManager get managers => $AppDatabaseManager(this);
@@ -2053,6 +2377,8 @@ abstract class _$AppDatabase extends GeneratedDatabase {
       $LocalProgressTableTable(this);
   late final $PendingRequestsTableTable pendingRequestsTable =
       $PendingRequestsTableTable(this);
+  late final $OfflineAssetsTableTable offlineAssetsTable =
+      $OfflineAssetsTableTable(this);
   @override
   Iterable<TableInfo<Table, Object?>> get allTables =>
       allSchemaEntities.whereType<TableInfo<Table, Object?>>();
@@ -2063,6 +2389,7 @@ abstract class _$AppDatabase extends GeneratedDatabase {
     lessonsTable,
     localProgressTable,
     pendingRequestsTable,
+    offlineAssetsTable,
   ];
 }
 
@@ -3850,6 +4177,202 @@ typedef $$PendingRequestsTableTableProcessedTableManager =
       PendingRequestsTableData,
       PrefetchHooks Function()
     >;
+typedef $$OfflineAssetsTableTableCreateCompanionBuilder =
+    OfflineAssetsTableCompanion Function({
+      required String url,
+      required String localPath,
+      Value<int?> fileSize,
+      Value<DateTime> downloadedAt,
+      Value<int> rowid,
+    });
+typedef $$OfflineAssetsTableTableUpdateCompanionBuilder =
+    OfflineAssetsTableCompanion Function({
+      Value<String> url,
+      Value<String> localPath,
+      Value<int?> fileSize,
+      Value<DateTime> downloadedAt,
+      Value<int> rowid,
+    });
+
+class $$OfflineAssetsTableTableFilterComposer
+    extends Composer<_$AppDatabase, $OfflineAssetsTableTable> {
+  $$OfflineAssetsTableTableFilterComposer({
+    required super.$db,
+    required super.$table,
+    super.joinBuilder,
+    super.$addJoinBuilderToRootComposer,
+    super.$removeJoinBuilderFromRootComposer,
+  });
+  ColumnFilters<String> get url => $composableBuilder(
+    column: $table.url,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get localPath => $composableBuilder(
+    column: $table.localPath,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<int> get fileSize => $composableBuilder(
+    column: $table.fileSize,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<DateTime> get downloadedAt => $composableBuilder(
+    column: $table.downloadedAt,
+    builder: (column) => ColumnFilters(column),
+  );
+}
+
+class $$OfflineAssetsTableTableOrderingComposer
+    extends Composer<_$AppDatabase, $OfflineAssetsTableTable> {
+  $$OfflineAssetsTableTableOrderingComposer({
+    required super.$db,
+    required super.$table,
+    super.joinBuilder,
+    super.$addJoinBuilderToRootComposer,
+    super.$removeJoinBuilderFromRootComposer,
+  });
+  ColumnOrderings<String> get url => $composableBuilder(
+    column: $table.url,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<String> get localPath => $composableBuilder(
+    column: $table.localPath,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<int> get fileSize => $composableBuilder(
+    column: $table.fileSize,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<DateTime> get downloadedAt => $composableBuilder(
+    column: $table.downloadedAt,
+    builder: (column) => ColumnOrderings(column),
+  );
+}
+
+class $$OfflineAssetsTableTableAnnotationComposer
+    extends Composer<_$AppDatabase, $OfflineAssetsTableTable> {
+  $$OfflineAssetsTableTableAnnotationComposer({
+    required super.$db,
+    required super.$table,
+    super.joinBuilder,
+    super.$addJoinBuilderToRootComposer,
+    super.$removeJoinBuilderFromRootComposer,
+  });
+  GeneratedColumn<String> get url =>
+      $composableBuilder(column: $table.url, builder: (column) => column);
+
+  GeneratedColumn<String> get localPath =>
+      $composableBuilder(column: $table.localPath, builder: (column) => column);
+
+  GeneratedColumn<int> get fileSize =>
+      $composableBuilder(column: $table.fileSize, builder: (column) => column);
+
+  GeneratedColumn<DateTime> get downloadedAt => $composableBuilder(
+    column: $table.downloadedAt,
+    builder: (column) => column,
+  );
+}
+
+class $$OfflineAssetsTableTableTableManager
+    extends
+        RootTableManager<
+          _$AppDatabase,
+          $OfflineAssetsTableTable,
+          OfflineAssetsTableData,
+          $$OfflineAssetsTableTableFilterComposer,
+          $$OfflineAssetsTableTableOrderingComposer,
+          $$OfflineAssetsTableTableAnnotationComposer,
+          $$OfflineAssetsTableTableCreateCompanionBuilder,
+          $$OfflineAssetsTableTableUpdateCompanionBuilder,
+          (
+            OfflineAssetsTableData,
+            BaseReferences<
+              _$AppDatabase,
+              $OfflineAssetsTableTable,
+              OfflineAssetsTableData
+            >,
+          ),
+          OfflineAssetsTableData,
+          PrefetchHooks Function()
+        > {
+  $$OfflineAssetsTableTableTableManager(
+    _$AppDatabase db,
+    $OfflineAssetsTableTable table,
+  ) : super(
+        TableManagerState(
+          db: db,
+          table: table,
+          createFilteringComposer: () =>
+              $$OfflineAssetsTableTableFilterComposer($db: db, $table: table),
+          createOrderingComposer: () =>
+              $$OfflineAssetsTableTableOrderingComposer($db: db, $table: table),
+          createComputedFieldComposer: () =>
+              $$OfflineAssetsTableTableAnnotationComposer(
+                $db: db,
+                $table: table,
+              ),
+          updateCompanionCallback:
+              ({
+                Value<String> url = const Value.absent(),
+                Value<String> localPath = const Value.absent(),
+                Value<int?> fileSize = const Value.absent(),
+                Value<DateTime> downloadedAt = const Value.absent(),
+                Value<int> rowid = const Value.absent(),
+              }) => OfflineAssetsTableCompanion(
+                url: url,
+                localPath: localPath,
+                fileSize: fileSize,
+                downloadedAt: downloadedAt,
+                rowid: rowid,
+              ),
+          createCompanionCallback:
+              ({
+                required String url,
+                required String localPath,
+                Value<int?> fileSize = const Value.absent(),
+                Value<DateTime> downloadedAt = const Value.absent(),
+                Value<int> rowid = const Value.absent(),
+              }) => OfflineAssetsTableCompanion.insert(
+                url: url,
+                localPath: localPath,
+                fileSize: fileSize,
+                downloadedAt: downloadedAt,
+                rowid: rowid,
+              ),
+          withReferenceMapper: (p0) => p0
+              .map((e) => (e.readTable(table), BaseReferences(db, table, e)))
+              .toList(),
+          prefetchHooksCallback: null,
+        ),
+      );
+}
+
+typedef $$OfflineAssetsTableTableProcessedTableManager =
+    ProcessedTableManager<
+      _$AppDatabase,
+      $OfflineAssetsTableTable,
+      OfflineAssetsTableData,
+      $$OfflineAssetsTableTableFilterComposer,
+      $$OfflineAssetsTableTableOrderingComposer,
+      $$OfflineAssetsTableTableAnnotationComposer,
+      $$OfflineAssetsTableTableCreateCompanionBuilder,
+      $$OfflineAssetsTableTableUpdateCompanionBuilder,
+      (
+        OfflineAssetsTableData,
+        BaseReferences<
+          _$AppDatabase,
+          $OfflineAssetsTableTable,
+          OfflineAssetsTableData
+        >,
+      ),
+      OfflineAssetsTableData,
+      PrefetchHooks Function()
+    >;
 
 class $AppDatabaseManager {
   final _$AppDatabase _db;
@@ -3864,4 +4387,6 @@ class $AppDatabaseManager {
       $$LocalProgressTableTableTableManager(_db, _db.localProgressTable);
   $$PendingRequestsTableTableTableManager get pendingRequestsTable =>
       $$PendingRequestsTableTableTableManager(_db, _db.pendingRequestsTable);
+  $$OfflineAssetsTableTableTableManager get offlineAssetsTable =>
+      $$OfflineAssetsTableTableTableManager(_db, _db.offlineAssetsTable);
 }

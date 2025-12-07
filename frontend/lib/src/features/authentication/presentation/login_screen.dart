@@ -12,13 +12,16 @@ class LoginScreen extends ConsumerStatefulWidget {
 
 class _LoginScreenState extends ConsumerState<LoginScreen> {
   final _emailController = TextEditingController();
+  final _passwordController = TextEditingController();
   bool _isLoading = false;
 
   Future<void> _login() async {
     setState(() => _isLoading = true);
     final email = _emailController.text.trim();
+    final password = _passwordController.text.trim();
+    
     if (email.isNotEmpty) {
-      final user = await ref.read(authRepositoryProvider).login(email);
+      final user = await ref.read(authRepositoryProvider).login(email, password.isNotEmpty ? password : null);
       if (user != null) {
         if (mounted) context.go('/');
       } else {
@@ -53,6 +56,16 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
                   prefixIcon: Icon(Icons.email),
                 ),
                 keyboardType: TextInputType.emailAddress,
+              ),
+              const SizedBox(height: 16),
+              TextField(
+                controller: _passwordController,
+                decoration: const InputDecoration(
+                  labelText: 'Password',
+                  border: OutlineInputBorder(),
+                  prefixIcon: Icon(Icons.lock),
+                ),
+                obscureText: true,
               ),
               const SizedBox(height: 24),
               SizedBox(

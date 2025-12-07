@@ -267,3 +267,24 @@
     *   **Backend:** Installed `@aws-sdk/client-s3`. Added `POST /api/upload/presign` to generate secure PUT URLs for R2.
     *   **Backend:** Updated `POST /api/ai/evaluate-speech` to accept `fileKey` and fetch audio directly from R2 bucket instead of requiring multipart upload.
     *   **Frontend:** Refactored `RecordingWidget` to first get a presigned URL, upload audio directly to R2 using `Dio.put`, and then trigger evaluation with the R2 key.
+
+### 2025-12-05 (Later)
+*   **Task:** Content - Niche Tracks (Construction, Legal, Nomad)
+*   **Status:** Completed
+*   **Details:**
+    *   **Pipeline:** Created `content_pipeline/generate_niche_content.py` to programmatically generate SQL seeds for specialized courses.
+    *   **Database:** Seeded D1 with "Spanish for Construction" (A2), "Legal Spanish 101" (B2), and "Digital Nomad Spain" (B1).
+    *   **Frontend:** Implemented three new lesson views:
+        *   `_FlashcardView`: Flip cards for vocabulary learning.
+        *   `_ReadingView`: Text passage with comprehension questions.
+        *   `_ImageQuizView`: Audio-prompted image selection grid.
+    *   **Integration:** Verified all new content types render correctly in `LessonPlayerScreen`.
+
+### 2025-12-05 (Later)
+*   **Task:** AI Feature - Phonetic Analysis
+*   **Status:** Completed
+*   **Details:**
+    *   **G2P:** Implemented a rule-based Spanish Grapheme-to-Phoneme converter in `backend/src/utils/g2p.ts`.
+    *   **Scoring:** Enhanced `scoring.ts` with `analyzePronunciation` which compares standard IPA vs transcribed IPA to detect specific errors (e.g., trilled 'r' vs tap).
+    *   **API:** Updated `evaluate-speech` to return a `feedback` list.
+    *   **UI:** Updated `RecordingWidget` to show an info icon when feedback is available, opening a dialog with specific pronunciation tips.

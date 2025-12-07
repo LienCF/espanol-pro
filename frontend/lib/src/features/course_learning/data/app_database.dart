@@ -1,24 +1,30 @@
-import 'dart:io';
 import 'package:drift/drift.dart';
-import 'package:drift/native.dart';
-import 'package:path_provider/path_provider.dart';
-import 'package:path/path.dart' as p;
+import '../../../core/database/connection/connection.dart';
 import 'local_db_schema.dart';
 
 part 'app_database.g.dart';
 
-@DriftDatabase(tables: [CoursesTable, UnitsTable, LessonsTable, LocalProgressTable, PendingRequestsTable])
+@DriftDatabase(tables: [CoursesTable, UnitsTable, LessonsTable, LocalProgressTable, PendingRequestsTable, OfflineAssetsTable])
 class AppDatabase extends _$AppDatabase {
-  AppDatabase() : super(_openConnection());
+  AppDatabase([QueryExecutor? e]) : super(e ?? openConnection());
 
   @override
-  int get schemaVersion => 1;
-}
+  int get schemaVersion => 3;
 
-LazyDatabase _openConnection() {
-  return LazyDatabase(() async {
-    final dbFolder = await getApplicationDocumentsDirectory();
-    final file = File(p.join(dbFolder.path, 'espanol_pro.sqlite'));
-    return NativeDatabase.createInBackground(file);
-  });
+  @override
+  MigrationStrategy get migration {
+    return MigrationStrategy(
+      onCreate: (Migrator m) async {
+        await m.createAll();
+      },
+      onUpgrade: (Migrator m, int from, int to) async {
+        if (from < 2) {
+          await m.createTable(pendingRequestsTable);
+        }
+        if (from < 3) {
+          await m.createTable(offlineAssetsTable);
+        }
+      },
+    );
+  }
 }

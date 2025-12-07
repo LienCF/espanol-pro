@@ -1,7 +1,7 @@
 import 'package:dio/dio.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../../core/api/api_client.dart';
-import '../../auth/data/auth_repository.dart';
+import '../../../core/auth/auth_repository.dart';
 import '../domain/skill.dart';
 
 final skillsRepositoryProvider = Provider<SkillsRepository>((ref) {

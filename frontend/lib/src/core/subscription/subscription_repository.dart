@@ -1,6 +1,8 @@
+import 'package:dio/dio.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:riverpod_annotation/riverpod_annotation.dart';
-import 'package:shared_preferences/shared_preferences.dart';
+import 'package:url_launcher/url_launcher.dart';
+import '../api/api_client.dart';
 import '../auth/auth_repository.dart';
 
 part 'subscription_repository.g.dart';
@@ -13,32 +15,30 @@ class SubscriptionRepository extends _$SubscriptionRepository {
     return user?.isPremium ?? false;
   }
 
-  Future<void> upgradeToPro() async {
-    // Simulate payment processing delay
-    await Future.delayed(const Duration(seconds: 2));
-    
-    // In a real app, we'd call the backend to verify receipt
-    // For MVP, we update local state (and should ideally call backend to update DB)
-    
-    // Mock: Update user state locally via AuthRepository? 
-    // AuthRepository manages the source of truth.
-    // Let's cheat for MVP: Update SharedPreferences and trigger a reload or re-login logic.
-    // Better: Add a method to AuthRepository to `setPremium(true)`.
-    
-    // Since we can't easily modify AuthRepository from here without it exposing a setter,
-    // let's assume AuthRepository exposes a method to refresh profile or set premium.
-    
-    // For this MVP, we'll just update the shared prefs and force a state update.
-    final prefs = await SharedPreferences.getInstance();
-    await prefs.setBool('isPremium', true);
-    
-    // Refresh auth state
+  Future<void> startCheckoutSession() async {
+    final api = ref.read(apiClientProvider);
+    try {
+      final response = await api.post('/api/payments/create-checkout-session');
+      final url = response.data['url'];
+      if (url != null) {
+        final uri = Uri.parse(url);
+        if (await canLaunchUrl(uri)) {
+          await launchUrl(uri, mode: LaunchMode.externalApplication);
+        } else {
+          throw Exception('Could not launch payment URL');
+        }
+      }
+    } catch (e) {
+      print('Checkout failed: $e');
+      rethrow;
+    }
+  }
+
+  Future<void> refreshSubscriptionStatus() async {
+    // Force refresh user profile from backend
     final user = ref.read(currentUserProvider);
     if (user != null) {
-      ref.read(currentUserProvider.notifier).setUser(user.copyWith(isPremium: true));
+      await ref.read(authRepositoryProvider).login(user.email); // Re-fetch profile
     }
-    
-    // Force rebuild
-    state = const AsyncValue.data(true);
   }
 }

@@ -2,28 +2,34 @@
 
 **An Edge-Native, AI-Powered Spanish Learning Ecosystem.**
 
-Español Pro helps learners break through the "intermediate plateau" with a dual-track system: standard fluency paths and specialized professional training (Medical, Construction, Legal). Built on **Cloudflare's Global Edge** and **Flutter**, it delivers milliseconds latency, offline-first reliability, and advanced AI tutoring features.
+Español Pro helps learners break through the "intermediate plateau" with a dual-track system: standard fluency paths and specialized professional training (Medical, Construction, Legal, Business, Tourism). Built on **Cloudflare's Global Edge** and **Flutter**, it delivers milliseconds latency, offline-first reliability, and advanced AI tutoring features.
 
 ---
 
 ## 🚀 Key Features
 
 ### 📚 Dual-Track Curriculum
-*   **General Track:** Based on FSI (Foreign Service Institute) standards for systematic proficiency.
-*   **Specialized Track:** Vertical modules for professionals (e.g., "Spanish for Construction Safety").
+*   **General Track (A0-C2):** From **Introductory Pronunciation** (Vowels, Trilled R) to **Advanced Debates** (AI Ethics, Climate Change). Based on FSI standards.
+*   **Specialized Track (ESP):** Vertical modules for professionals:
+    *   🏗️ **Construction:** OSHA Safety & Site commands.
+    *   ⚖️ **Legal:** Courtroom terminology & Procedures.
+    *   💼 **Business:** Negotiation & Office etiquette.
+    *   ✈️ **Tourism:** Survival phrases & Problem solving.
+    *   🏥 **Medical:** Pain assessment & Triage.
 
 ### 🤖 Advanced AI Tutoring
-*   **Speech Evaluation:** Record your voice and get instant pronunciation feedback powered by **OpenAI Whisper** (running on Workers AI).
+*   **Phonetic Analysis:** Record your voice and get specific feedback (e.g., "Watch your trilled 'rr'") powered by **Whisper** and a custom **G2P (Grapheme-to-Phoneme)** engine.
 *   **AI Roleplay:** Chat with "Carlos", an AI tutor powered by **Llama 3**. Practice real-world scenarios with **Real-time Grammar Correction**.
+*   **Adaptive Learning:** Built-in **Bayesian Knowledge Tracing (BKT)** engine that tracks mastery of specific skills (e.g., Subjunctive Mood, Accents) and adapts progress visualization.
 
 ### ⚡ Edge-Native Architecture
 *   **Global Low Latency:** Backend logic runs on Cloudflare Workers, distributed close to users worldwide.
 *   **Offline-First:** Complete offline support using **Drift (SQLite)**. Progress syncs automatically when back online via a request queue.
-*   **Zero-Egress Audio:** High-quality audio assets hosted on **Cloudflare R2**.
+*   **Zero-Egress Audio:** High-quality neural audio assets (generated via **Edge-TTS**) hosted on **Cloudflare R2**.
 
 ### 📱 Cross-Platform
 *   **Flutter:** Single codebase for iOS, Android, macOS, and Windows.
-*   **Desktop Optimized:** Keyboard shortcuts, adaptive layouts, and window management.
+*   **Desktop Optimized:** Keyboard shortcuts (`ArrowRight` to advance), adaptive grid layouts, and window constraints.
 
 ---
 
@@ -42,10 +48,12 @@ Español Pro helps learners break through the "intermediate plateau" with a dual
 *   **Database:** Cloudflare D1 (SQLite at the Edge)
 *   **Object Storage:** Cloudflare R2
 *   **AI Inference:** Workers AI (@cf/openai/whisper, @cf/meta/llama-3-8b-instruct)
+*   **Scoring Engine:** Levenshtein Distance + Rule-based Phonetic G2P
 
 ### Content Pipeline
 *   **Language:** Python
-*   **Tools:** gTTS (Google Text-to-Speech), pydub (Audio manipulation)
+*   **TTS:** Edge-TTS (Neural Speech Synthesis)
+*   **Automation:** Custom parsers for FSI and OSHA PDF content
 
 ---
 
@@ -89,6 +97,7 @@ Español Pro helps learners break through the "intermediate plateau" with a dual
     ```bash
     wrangler d1 execute espanol-pro-db --file=schema.sql --remote
     wrangler d1 execute espanol-pro-db --file=scripts/seed_d1.sql --remote
+    wrangler d1 execute espanol-pro-db --file=scripts/seed_niche_content.sql --remote
     ```
 5.  **Deploy Worker:**
     ```bash
@@ -107,14 +116,15 @@ If you want to regenerate audio or add new lessons:
     source venv/bin/activate
     pip install -r requirements.txt
     ```
-2.  **Generate Audio:**
+2.  **Generate Content & Audio:**
     ```bash
-    python generate_audio.py
+    python generate_niche_content.py # Generates SQL
+    python generate_niche_audio.py   # Generates MP3s
     ```
 3.  **Upload to R2:**
     *   Create an R2 bucket named `espanol-pro-content`.
     *   Configure `wrangler.toml` with the bucket binding.
-    *   Use `rclone` or `upload_audio.py` (requires R2 keys) to sync `output/audio` to the bucket.
+    *   Use `python upload_audio.py` to upload generated files.
 
 ### 3. Frontend Setup
 

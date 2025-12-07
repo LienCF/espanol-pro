@@ -4,7 +4,7 @@ part 'skill.freezed.dart';
 part 'skill.g.dart';
 
 @freezed
-class Skill with _$Skill {
+abstract class Skill with _$Skill {
   const factory Skill({
     @JsonKey(name: 'skill_name') required String name,
     @JsonKey(name: 'description') String? description,

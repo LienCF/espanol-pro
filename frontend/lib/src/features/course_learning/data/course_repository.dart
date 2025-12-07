@@ -1,3 +1,4 @@
+import 'dart:convert';
 import 'package:dio/dio.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:riverpod_annotation/riverpod_annotation.dart';
@@ -124,19 +125,56 @@ class CourseRepository {
   }
 
   Future<void> syncCourses() async {
-    if (_userId == null) return; // Or handle error
+    if (_userId == null) return;
     try {
-      // 1. Fetch all courses
+      // 1. Fetch all remote courses
       final coursesResponse = await _api.get('/api/courses', queryParameters: {'userId': _userId});
-      // ... (rest of logic, passing userId where needed) ...
-      // Note: /api/courses/:id also needs userId for completion status
-      // But wait, the current impl of /api/courses returns completed_count which depends on userId.
-      // So passing query param is correct.
-      
       final coursesData = coursesResponse.data as List;
+
+      // 2. Get local courses version map
+      final localCourses = await _db.select(_db.coursesTable).get();
+      final localVersionMap = {for (var c in localCourses) c.id: c.version};
+
+      // 3. Handle Deletions (Stale courses)
+      final remoteCourseIds = coursesData.map((c) => c['id'] as String).toSet();
+      final coursesToDelete = localVersionMap.keys.where((id) => !remoteCourseIds.contains(id)).toList();
+
+      if (coursesToDelete.isNotEmpty) {
+        print('Deleting ${coursesToDelete.length} stale courses: $coursesToDelete');
+        
+        // Delete Lessons of those courses
+        // Delete from lessons where unit_id in (select id from units where course_id in coursesToDelete)
+        final unitsQuery = _db.selectOnly(_db.unitsTable)
+          ..addColumns([_db.unitsTable.id])
+          ..where(_db.unitsTable.courseId.isIn(coursesToDelete));
+        
+        await (_db.delete(_db.lessonsTable)
+              ..where((l) => l.unitId.isInQuery(unitsQuery)))
+            .go();
+
+        // Delete Units
+        await (_db.delete(_db.unitsTable)
+              ..where((u) => u.courseId.isIn(coursesToDelete)))
+            .go();
+
+        // Delete Courses
+        await (_db.delete(_db.coursesTable)
+              ..where((c) => c.id.isIn(coursesToDelete)))
+            .go();
+      }
+
+      final coursesToSync = <String>{};
 
       await _db.batch((batch) {
         for (final c in coursesData) {
+          final remoteVersion = c['version'] ?? 1;
+          final localVersion = localVersionMap[c['id']] ?? 0;
+          
+          if (remoteVersion > localVersion) {
+            coursesToSync.add(c['id']);
+          }
+
+          // Always update course metadata (title, desc, progress)
           batch.insert(
             _db.coursesTable,
             CoursesTableCompanion.insert(
@@ -147,7 +185,7 @@ class CourseRepository {
               level: c['level'],
               trackType: c['track_type'],
               thumbnailUrl: Value(c['thumbnail_url']),
-              version: Value(c['version'] ?? 1),
+              version: Value(remoteVersion),
               completedLessonsCount: Value(c['completed_count'] ?? 0),
               totalLessonsCount: Value(c['total_lessons'] ?? 0),
             ),
@@ -156,9 +194,15 @@ class CourseRepository {
         }
       });
 
-      // 2. Fetch details for each course to get units
-      for (final c in coursesData) {
-        final courseId = c['id'];
+      if (coursesToSync.isEmpty) {
+        print('All courses up to date.');
+        return;
+      }
+
+      print('Syncing details for ${coursesToSync.length} courses...');
+
+      // 3. Fetch details ONLY for outdated courses
+      for (final courseId in coursesToSync) {
         try {
           final courseDetailResponse = await _api.get('/api/courses/$courseId', queryParameters: {'userId': _userId});
           final unitsData = courseDetailResponse.data['units'] as List;
@@ -178,33 +222,46 @@ class CourseRepository {
             }
           });
 
-          // 3. Fetch lessons for each unit
+          // 4. Fetch lessons metadata
           for (final u in unitsData) {
             final unitId = u['id'];
             final lessonsResponse = await _api.get('/api/units/$unitId/lessons');
             final lessonsData = lessonsResponse.data as List;
 
-            // 4. Fetch full content for each lesson
-            for (final l in lessonsData) {
-              final lessonId = l['id'];
-              final lessonDetailResponse = await _api.get('/api/lessons/$lessonId');
-              final lessonDetail = lessonDetailResponse.data;
+            // Detect and delete stale lessons for this unit
+            final remoteLessonIds = lessonsData.map((l) => l['id'] as String).toSet();
+            final localLessons = await (_db.select(_db.lessonsTable)..where((t) => t.unitId.equals(unitId))).get();
+            final localLessonIds = localLessons.map((l) => l.id).toSet();
+            final lessonsToDelete = localLessonIds.difference(remoteLessonIds);
 
-              await _db.into(_db.lessonsTable).insert(
-                LessonsTableCompanion.insert(
-                  id: lessonDetail['id'],
-                  unitId: lessonDetail['unit_id'],
-                  title: lessonDetail['title'],
-                  contentType: lessonDetail['content_type'],
-                  orderIndex: lessonDetail['order_index'],
-                  contentJson: Value(lessonDetail['content_json']),
-                ),
-                mode: InsertMode.insertOrReplace,
-              );
+            if (lessonsToDelete.isNotEmpty) {
+              print('Deleting stale lessons for unit $unitId: $lessonsToDelete');
+              await (_db.delete(_db.lessonsTable)..where((t) => t.id.isIn(lessonsToDelete))).go();
             }
+
+            await _db.batch((batch) {
+              for (final l in lessonsData) {
+                batch.insert(
+                  _db.lessonsTable,
+                  LessonsTableCompanion.insert(
+                    id: l['id'],
+                    unitId: unitId,
+                    title: l['title'],
+                    contentType: l['content_type'],
+                    orderIndex: l['order_index'],
+                  ),
+                  onConflict: DoUpdate((old) => LessonsTableCompanion(
+                    title: Value(l['title']),
+                    contentType: Value(l['content_type']),
+                    orderIndex: Value(l['order_index']),
+                    contentJson: const Value(null), // Invalidate cache to force re-fetch
+                  )),
+                );
+              }
+            });
           }
 
-          // 5. Sync Progress (Completed Lessons)
+          // 5. Sync Progress
           if (courseDetailResponse.data['completedLessonIds'] != null) {
             final completedIds = List<String>.from(courseDetailResponse.data['completedLessonIds']);
             await _db.batch((batch) {
@@ -230,6 +287,22 @@ class CourseRepository {
     }
   }
 
+  Future<void> fetchLessonDetails(String lessonId) async {
+    try {
+      final response = await _api.get('/api/lessons/$lessonId');
+      final data = response.data;
+      
+      await (_db.update(_db.lessonsTable)..where((t) => t.id.equals(lessonId))).write(
+        LessonsTableCompanion(
+          contentJson: Value(data['content_json']),
+        ),
+      );
+    } catch (e) {
+      print('Error fetching lesson details: $e');
+      rethrow;
+    }
+  }
+
   Future<void> saveLessonProgress({
     required String lessonId,
     required String courseId,
@@ -237,14 +310,17 @@ class CourseRepository {
     String interactionType = 'COMPLETION',
   }) async {
     if (_userId == null) return;
+    
+    final requestData = {
+      'userId': _userId,
+      'lessonId': lessonId,
+      'courseId': courseId,
+      'isCorrect': isCorrect,
+      'interactionType': interactionType,
+    };
+
     try {
-      await _api.post('/api/progress', data: {
-        'userId': _userId,
-        'lessonId': lessonId,
-        'courseId': courseId,
-        'isCorrect': isCorrect,
-        'interactionType': interactionType,
-      });
+      await _api.post('/api/progress', data: requestData);
       // Insert local progress immediately for optimistic UI
       await _db.into(_db.localProgressTable).insert(
         LocalProgressTableCompanion.insert(

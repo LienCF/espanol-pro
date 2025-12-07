@@ -1,7 +1,9 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
+import '../../../../l10n/generated/app_localizations.dart';
 import '../../../core/auth/auth_repository.dart';
+import '../../../core/utils/localization_helper.dart';
 import '../../course_learning/data/course_repository.dart';
 import '../../course_learning/data/skills_repository.dart';
 import '../../course_learning/domain/course.dart';
@@ -30,23 +32,24 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
   Widget build(BuildContext context) {
     final user = ref.watch(currentUserProvider);
     final isPremium = user?.isPremium ?? false;
+    final l10n = AppLocalizations.of(context)!;
 
     return Scaffold(
       appBar: AppBar(
-        title: const Text('Español Pro'),
+        title: Text(l10n.appTitle),
         centerTitle: false,
         actions: [
           if (!isPremium)
             TextButton.icon(
               onPressed: () => context.push('/paywall'),
               icon: const Icon(Icons.diamond, color: Colors.orange),
-              label: const Text('Go Pro', style: TextStyle(color: Colors.orange)),
+              label: Text(l10n.goPro, style: const TextStyle(color: Colors.orange)),
             ),
           PopupMenuButton(
             icon: const Icon(Icons.person_outline),
             itemBuilder: (context) => [
               PopupMenuItem(
-                child: const Text('Logout'),
+                child: Text(l10n.logout),
                 onTap: () {
                   ref.read(authRepositoryProvider).logout();
                 },
@@ -65,16 +68,16 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
             _selectedIndex = index;
           });
         },
-        destinations: const [
+        destinations: [
           NavigationDestination(
-            icon: Icon(Icons.dashboard_outlined),
-            selectedIcon: Icon(Icons.dashboard),
-            label: 'Courses',
+            icon: const Icon(Icons.dashboard_outlined),
+            selectedIcon: const Icon(Icons.dashboard),
+            label: l10n.coursesTab,
           ),
           NavigationDestination(
-            icon: Icon(Icons.insights_outlined),
-            selectedIcon: Icon(Icons.insights),
-            label: 'Skills',
+            icon: const Icon(Icons.insights_outlined),
+            selectedIcon: const Icon(Icons.insights),
+            label: l10n.skillsTab,
           ),
         ],
       ),
@@ -87,24 +90,25 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
     return coursesAsync.when(
       data: (courses) => _buildCourseList(context, courses, isPremium),
       loading: () => const Center(child: CircularProgressIndicator()),
-      error: (err, stack) => Center(child: Text('Error: $err')),
+      error: (err, stack) => Center(child: Text(AppLocalizations.of(context)!.errorWithMsg(err.toString()))),
     );
   }
 
   Widget _buildSkillsTab() {
     final skillsAsync = ref.watch(userSkillsProvider);
+    final l10n = AppLocalizations.of(context)!;
 
     return skillsAsync.when(
       data: (skills) {
         if (skills.isEmpty) {
-          return const Center(
+          return Center(
             child: Column(
               mainAxisAlignment: MainAxisAlignment.center,
               children: [
-                Icon(Icons.psychology_outlined, size: 64, color: Colors.grey),
-                SizedBox(height: 16),
-                Text('No skills data yet.', style: TextStyle(color: Colors.grey)),
-                Text('Complete lessons to track your mastery!', style: TextStyle(color: Colors.grey)),
+                const Icon(Icons.psychology_outlined, size: 64, color: Colors.grey),
+                const SizedBox(height: 16),
+                Text(l10n.noSkillsData, style: const TextStyle(color: Colors.grey)),
+                Text(l10n.trackMasteryHint, style: const TextStyle(color: Colors.grey)),
               ],
             ),
           );
@@ -119,15 +123,16 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
         );
       },
       loading: () => const Center(child: CircularProgressIndicator()),
-      error: (err, stack) => Center(child: Text('Error: $err')),
+      error: (err, stack) => Center(child: Text(l10n.errorWithMsg(err.toString()))),
     );
   }
 
   Widget _buildCourseList(BuildContext context, List<Course> courses, bool isPremium) {
+    final l10n = AppLocalizations.of(context)!;
     if (courses.isEmpty) {
-      return const Center(child: Text('No courses available yet.'));
+      return Center(child: Text(l10n.noCoursesAvailable));
     }
-
+    
     // Split courses by track
     final generalTrack = courses.where((c) => c.trackType == 'GENERAL').toList();
     final specializedTrack = courses.where((c) => c.trackType == 'SPECIALIZED').toList();
@@ -136,47 +141,49 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
       builder: (context, constraints) {
         if (constraints.maxWidth > 600) {
           // Desktop / Tablet Grid Layout
-          return CustomScrollView(
+          return Padding(
             padding: const EdgeInsets.all(24),
-            slivers: [
-              if (generalTrack.isNotEmpty) ...[
-                SliverToBoxAdapter(child: Padding(
-                  padding: const EdgeInsets.only(bottom: 16.0),
-                  child: _buildSectionHeader(context, 'General Proficiency', Icons.school),
-                )),
-                SliverGrid(
-                  gridDelegate: const SliverGridDelegateWithMaxCrossAxisExtent(
-                    maxCrossAxisExtent: 400,
-                    mainAxisSpacing: 16,
-                    crossAxisSpacing: 16,
-                    childAspectRatio: 1.8,
+            child: CustomScrollView(
+              slivers: [
+                if (generalTrack.isNotEmpty) ...[
+                  SliverToBoxAdapter(child: Padding(
+                    padding: const EdgeInsets.only(bottom: 16.0),
+                    child: _buildSectionHeader(context, l10n.generalProficiency, Icons.school),
+                  )),
+                  SliverGrid(
+                    gridDelegate: const SliverGridDelegateWithMaxCrossAxisExtent(
+                      maxCrossAxisExtent: 400,
+                      mainAxisSpacing: 16,
+                      crossAxisSpacing: 16,
+                      childAspectRatio: 1.8,
+                    ),
+                    delegate: SliverChildBuilderDelegate(
+                      (context, index) => CourseCard(course: generalTrack[index], isLocked: false),
+                      childCount: generalTrack.length,
+                    ),
                   ),
-                  delegate: SliverChildBuilderDelegate(
-                    (context, index) => CourseCard(course: generalTrack[index], isLocked: false),
-                    childCount: generalTrack.length,
+                  const SliverToBoxAdapter(child: SizedBox(height: 32)),
+                ],
+                if (specializedTrack.isNotEmpty) ...[
+                  SliverToBoxAdapter(child: Padding(
+                    padding: const EdgeInsets.only(bottom: 16.0),
+                    child: _buildSectionHeader(context, l10n.specializedTracks, Icons.work),
+                  )),
+                  SliverGrid(
+                    gridDelegate: const SliverGridDelegateWithMaxCrossAxisExtent(
+                      maxCrossAxisExtent: 400,
+                      mainAxisSpacing: 16,
+                      crossAxisSpacing: 16,
+                      childAspectRatio: 1.8,
+                    ),
+                    delegate: SliverChildBuilderDelegate(
+                      (context, index) => CourseCard(course: specializedTrack[index], isLocked: !isPremium),
+                      childCount: specializedTrack.length,
+                    ),
                   ),
-                ),
-                const SliverToBoxAdapter(child: SizedBox(height: 32)),
+                ],
               ],
-              if (specializedTrack.isNotEmpty) ...[
-                SliverToBoxAdapter(child: Padding(
-                  padding: const EdgeInsets.only(bottom: 16.0),
-                  child: _buildSectionHeader(context, 'Specialized Tracks (ESP)', Icons.work),
-                )),
-                SliverGrid(
-                  gridDelegate: const SliverGridDelegateWithMaxCrossAxisExtent(
-                    maxCrossAxisExtent: 400,
-                    mainAxisSpacing: 16,
-                    crossAxisSpacing: 16,
-                    childAspectRatio: 1.8,
-                  ),
-                  delegate: SliverChildBuilderDelegate(
-                    (context, index) => CourseCard(course: specializedTrack[index], isLocked: !isPremium),
-                    childCount: specializedTrack.length,
-                  ),
-                ),
-              ],
-            ],
+            ),
           );
         } else {
           // Mobile List Layout
@@ -184,13 +191,13 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
             padding: const EdgeInsets.all(16),
             children: [
               if (generalTrack.isNotEmpty) ...[
-                _buildSectionHeader(context, 'General Proficiency', Icons.school),
+                _buildSectionHeader(context, l10n.generalProficiency, Icons.school),
                 const SizedBox(height: 8),
                 ...generalTrack.map((c) => CourseCard(course: c, isLocked: false)), // General is always free for MVP
                 const SizedBox(height: 24),
               ],
               if (specializedTrack.isNotEmpty) ...[
-                _buildSectionHeader(context, 'Specialized Tracks (ESP)', Icons.work),
+                _buildSectionHeader(context, l10n.specializedTracks, Icons.work),
                 const SizedBox(height: 8),
                 ...specializedTrack.map((c) => CourseCard(course: c, isLocked: !isPremium)),
               ],
@@ -298,6 +305,7 @@ class CourseCard extends StatelessWidget {
   Widget build(BuildContext context) {
     final isSpecialized = course.trackType == 'SPECIALIZED';
     final colorScheme = Theme.of(context).colorScheme;
+    final l10n = AppLocalizations.of(context)!;
     
     return Card(
       elevation: 4,
@@ -350,7 +358,7 @@ class CourseCard extends StatelessWidget {
                           children: [
                             Flexible(
                               child: Text(
-                                course.title,
+                                getLocalized(context, course.title),
                                 style: Theme.of(context).textTheme.titleMedium?.copyWith(
                                       fontWeight: FontWeight.bold,
                                     ),
@@ -383,7 +391,7 @@ class CourseCard extends StatelessWidget {
                         ),
                         const SizedBox(height: 8),
                         Text(
-                          course.description ?? '',
+                          getLocalized(context, course.description),
                           style: Theme.of(context).textTheme.bodySmall?.copyWith(
                             color: colorScheme.onSurfaceVariant,
                           ),
@@ -405,7 +413,7 @@ class CourseCard extends StatelessWidget {
                           ),
                           const SizedBox(height: 4),
                           Text(
-                            '${course.completedLessonsCount} / ${course.totalLessonsCount} lessons completed',
+                            l10n.lessonsCompleted(course.completedLessonsCount, course.totalLessonsCount),
                             style: Theme.of(context).textTheme.labelSmall?.copyWith(
                               color: colorScheme.onSurfaceVariant
                             ),

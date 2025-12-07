@@ -1,0 +1,95 @@
+{
+  "appTitle": "Español Pro",
+  "goPro": "Go Pro",
+  "logout": "Logout",
+  "coursesTab": "Courses",
+  "skillsTab": "Skills",
+  "generalProficiency": "General Proficiency",
+  "specializedTracks": "Specialized Tracks (ESP)",
+  "lessonsCompleted": "{completed} / {total} lessons completed",
+  "@lessonsCompleted": {
+    "placeholders": {
+      "completed": {
+        "type": "int"
+      },
+      "total": {
+        "type": "int"
+      }
+    }
+  },
+  "lessonCompleted": "Lesson Completed!",
+  "lessonNotFound": "Lesson not found",
+  "downloadingContent": "Downloading content...",
+  "completeLesson": "Complete Lesson",
+  "completeDrill": "Complete Drill",
+  "nextQuestion": "Next Question",
+  "finishQuiz": "Finish Quiz",
+  "finishSave": "Finish & Save",
+  "quizCompleted": "Quiz Completed!",
+  "scoreResult": "Score: {score} / {total}",
+  "@scoreResult": {
+    "placeholders": {
+      "score": {
+        "type": "int"
+      },
+      "total": {
+        "type": "int"
+      }
+    }
+  },
+  "typeResponse": "Type your response (in Spanish)...",
+  "endChat": "End Chat & Complete",
+  "tapToFlip": "Tap to flip back",
+  "tapToReveal": "Tap to reveal",
+  "nextCard": "Next Card",
+  "finish": "Finish",
+  "finishReading": "Finish Reading",
+  "listenAndSelect": "Listen & Select",
+  "continueBtn": "Continue",
+  "correct": "Correct!",
+  "incorrect": "Incorrect.",
+  "pronunciationFeedback": "Pronunciation Feedback",
+  "gotIt": "Got it",
+  "holdToRecord": "Hold to record",
+  "noCoursesAvailable": "No courses available yet.",
+  "noSkillsData": "No skills data yet.",
+  "trackMasteryHint": "Complete lessons to track your mastery!",
+  "loading": "Loading...",
+  "error": "Error",
+  "errorWithMsg": "Error: {msg}",
+  "@errorWithMsg": {
+    "placeholders": {
+      "msg": {
+        "type": "String"
+      }
+    }
+  },
+  "audioDrillComingSoon": "Audio Drill Module Coming Soon",
+  "unknownLessonType": "Unknown Lesson Type",
+  "noContentAvailable": "No content available",
+  "noQuizContent": "No quiz content available",
+  "noFlashcards": "No flashcards available",
+  "micPermissionDenied": "Microphone permission not granted",
+  "speechEvalFailed": "Speech evaluation failed",
+  "audioPlaybackError": "Audio Playback Error: {error}",
+  "@audioPlaybackError": {
+    "placeholders": {
+      "error": {
+        "type": "String"
+      }
+    }
+  },
+  "drillBase": "Base",
+  "drillSubstitute": "Substitute",
+  "questionProgress": "Question {current} of {total}",
+  "@questionProgress": {
+    "placeholders": {
+      "current": {
+        "type": "int"
+      },
+      "total": {
+        "type": "int"
+      }
+    }
+  }
+}

@@ -1,3 +1,5 @@
+import { textToIPA } from './g2p';
+
 export function levenshteinDistance(a: string, b: string): number {
   if (a.length === 0) return b.length;
   if (b.length === 0) return a.length;
@@ -48,4 +50,32 @@ export function calculateSimilarity(target: string, actual: string): number {
   
   const similarity = (1 - distance / maxLength) * 100;
   return Math.max(0, Math.round(similarity));
+}
+
+export function analyzePronunciation(target: string, actual: string): string[] {
+  const feedback: string[] = [];
+  const ipaTarget = textToIPA(target);
+  const ipaActual = textToIPA(actual);
+
+  // Check for Trilled R issues
+  if (ipaTarget.includes('r') && !ipaActual.includes('r')) {
+    feedback.push("Practice your trilled 'rr' (erre) sound. It should be strong and rolling.");
+  }
+
+  // Check for J/G (Kh) sound
+  if (ipaTarget.includes('x') && !ipaActual.includes('x')) {
+    feedback.push("Watch the 'j' or 'g' sound. It comes from the back of the throat.");
+  }
+
+  // Check for missing syllables/speed
+  if (Math.abs(ipaTarget.length - ipaActual.length) > ipaTarget.length * 0.3) {
+    feedback.push("Try to match the speed and rhythm. You might be skipping or adding syllables.");
+  }
+
+  // Fallback if score is low but no specific error found
+  if (feedback.length === 0 && calculateSimilarity(target, actual) < 80) {
+    feedback.push("Listen closely to the vowels. Spanish vowels are short and clear.");
+  }
+
+  return feedback;
 }

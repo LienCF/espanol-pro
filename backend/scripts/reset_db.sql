@@ -1,0 +1,8 @@
+DROP TABLE IF EXISTS user_kc_state;
+DROP TABLE IF EXISTS user_course_progress;
+DROP TABLE IF EXISTS study_logs;
+DROP TABLE IF EXISTS lessons;
+DROP TABLE IF EXISTS units;
+DROP TABLE IF EXISTS courses;
+DROP TABLE IF EXISTS knowledge_components;
+DROP TABLE IF EXISTS users;

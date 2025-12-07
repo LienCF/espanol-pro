@@ -34,7 +34,7 @@ final class SubscriptionRepositoryProvider
 }
 
 String _$subscriptionRepositoryHash() =>
-    r'c9458136da789be4ef077aca160dbaa9287ea25e';
+    r'89de99fc718a6ffffb807994f847d5aca364c543';
 
 abstract class _$SubscriptionRepository extends $AsyncNotifier<bool> {
   FutureOr<bool> build();

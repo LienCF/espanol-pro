@@ -1,0 +1,18 @@
+# 忽略前端建置產物 (含數字開頭的雜湊資料夾)
+frontend/build/
+frontend/.dart_tool/
+
+# 忽略輸出媒體檔案 (含特殊字元檔名)
+output/
+
+# 忽略 Python 虛擬環境 (可能含有 2to3 等以數字開頭的工具)
+content_pipeline/venv/
+venv/
+
+# 忽略後端依賴與暫存檔 (減少 Token 消耗並避免錯誤)
+backend/node_modules/
+backend/.wrangler/
+
+# 忽略 Git 與系統檔
+.git/
+.DS_Store

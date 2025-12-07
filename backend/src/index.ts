@@ -1,9 +1,11 @@
 import { Hono } from 'hono'
 import { cors } from 'hono/cors'
+import { verifyAuth } from './middleware/auth'
 import { calculateNewMastery } from './bkt'
-import { calculateSimilarity } from './utils/scoring'
+import { calculateSimilarity, analyzePronunciation } from './utils/scoring'
 import { S3Client, PutObjectCommand } from '@aws-sdk/client-s3'
 import { getSignedUrl } from '@aws-sdk/s3-request-presigner'
+import Stripe from 'stripe'
 
 type Bindings = {
   DB: D1Database
@@ -12,18 +14,117 @@ type Bindings = {
   ACCOUNT_ID: string
   R2_ACCESS_KEY_ID: string
   R2_SECRET_ACCESS_KEY: string
+  STRIPE_SECRET_KEY: string
+  STRIPE_WEBHOOK_SECRET: string
 }
 
 const app = new Hono<{ Bindings: Bindings }>()
 
 app.use('/*', cors())
+// Protect API routes except auth, webhooks, and public assets
+app.use('/api/*', async (c, next) => {
+  const path = c.req.path
+  if (path.startsWith('/api/auth') || path.startsWith('/api/payments/webhook')) {
+    await next()
+  } else {
+    await verifyAuth(c, next)
+  }
+})
 
 app.get('/', (c) => {
   return c.text('Hola, Español Pro API!')
 })
 
+// ... existing endpoints ...
+
+// 12. Stripe Checkout Session
+app.post('/api/payments/create-checkout-session', async (c) => {
+  try {
+    const user = c.get('user') as any
+    if (!user) return c.json({ error: 'Unauthorized' }, 401)
+
+    const stripe = new Stripe(c.env.STRIPE_SECRET_KEY, { apiVersion: '2025-01-27.acacia' as any }) // Use latest or compatible version
+    
+    const session = await stripe.checkout.sessions.create({
+      payment_method_types: ['card'],
+      line_items: [
+        {
+          price_data: {
+            currency: 'usd',
+            product_data: {
+              name: 'Español Pro Premium',
+              description: 'Unlock all specialized courses and AI features.',
+            },
+            unit_amount: 999, // $9.99
+          },
+          quantity: 1,
+        },
+      ],
+      mode: 'payment', // or 'subscription'
+      success_url: 'https://espanol-pro.app/success', // In a real app, use deep link or hosted success page
+      cancel_url: 'https://espanol-pro.app/cancel',
+      client_reference_id: user.sub, // Pass user ID to webhook
+      metadata: {
+        userId: user.sub
+      }
+    })
+
+    return c.json({ url: session.url })
+  } catch (e: any) {
+    console.error('Stripe Error:', e)
+    return c.json({ error: e.message }, 500)
+  }
+})
+
+// 13. Stripe Webhook
+app.post('/api/payments/webhook', async (c) => {
+  const sig = c.req.header('stripe-signature')
+  const body = await c.req.text()
+
+  if (!sig || !c.env.STRIPE_WEBHOOK_SECRET) {
+    return c.json({ error: 'Missing signature or config' }, 400)
+  }
+
+  const stripe = new Stripe(c.env.STRIPE_SECRET_KEY, { apiVersion: '2025-01-27.acacia' as any })
+
+  let event: Stripe.Event
+
+  try {
+    event = await stripe.webhooks.constructEventAsync(
+      body,
+      sig,
+      c.env.STRIPE_WEBHOOK_SECRET
+    )
+  } catch (err: any) {
+    console.error(`Webhook Signature Verification Failed: ${err.message}`)
+    return c.json({ error: `Webhook Error: ${err.message}` }, 400)
+  }
+
+  // Handle the event
+  switch (event.type) {
+    case 'checkout.session.completed':
+      const session = event.data.object as Stripe.Checkout.Session
+      const userId = session.client_reference_id
+      
+      if (userId) {
+        console.log(`Granting premium to user: ${userId}`)
+        await c.env.DB.prepare(
+          'UPDATE users SET is_premium = 1 WHERE id = ?'
+        ).bind(userId).run()
+      }
+      break;
+    default:
+      console.log(`Unhandled event type ${event.type}`)
+  }
+
+  return c.json({ received: true })
+})
+
+// ... rest of the app ...
+
 // 11. Presigned Upload URL
 app.post('/api/upload/presign', async (c) => {
+  // ... existing code ...
   try {
     const { filename, contentType } = await c.req.json()
     if (!filename) return c.json({ error: 'Filename is required' }, 400)
@@ -55,7 +156,9 @@ app.post('/api/upload/presign', async (c) => {
 
 // 1. Get all courses
 app.get('/api/courses', async (c) => {
-  const userId = c.req.query('userId') || 'test_user_1'
+  const user = c.get('user') as any
+  const userId = user?.sub || c.req.query('userId') || 'test_user_1'
+  
   try {
     // Get courses with progress
     const { results } = await c.env.DB.prepare(`
@@ -72,170 +175,66 @@ app.get('/api/courses', async (c) => {
   }
 })
 
-// 2. Get course details (including units and completed lesson IDs)
-app.get('/api/courses/:id', async (c) => {
-  const id = c.req.param('id')
-  const userId = c.req.query('userId') || 'test_user_1'
-  
+// ... existing code ...
+
+// 6. Auth (Login / Exchange Token)
+app.post('/api/auth/login', async (c) => {
   try {
-    const course = await c.env.DB.prepare(
-      'SELECT * FROM courses WHERE id = ?'
-    ).bind(id).first()
+    let email: string;
+    let userId: string;
+    let displayName: string;
 
-    if (!course) return c.json({ error: 'Course not found' }, 404)
-
-    // Fetch units for this course
-    const { results: units } = await c.env.DB.prepare(
-      'SELECT * FROM units WHERE course_id = ? ORDER BY order_index'
-    ).bind(id).all()
-
-    // Fetch completed lesson IDs for this course
-    // We get distinct lesson_ids from study_logs where is_correct = 1 (or completed)
-    // Efficient query might need a dedicated table later, but logs work for MVP
-    const { results: completedLessons } = await c.env.DB.prepare(`
-      SELECT DISTINCT lesson_id 
-      FROM study_logs 
-      WHERE user_id = ? 
-      AND is_correct = 1 
-      AND lesson_id IN (
-        SELECT l.id FROM lessons l
-        JOIN units u ON l.unit_id = u.id
-        WHERE u.course_id = ?
-      )
-    `).bind(userId, id).all()
-
-    const completedLessonIds = completedLessons.map((r: any) => r.lesson_id)
-
-    return c.json({ ...course, units, completedLessonIds })
-  } catch (e) {
-    return c.json({ error: e }, 500)
-  }
-})
-
-// 3. Get lessons for a unit
-app.get('/api/units/:id/lessons', async (c) => {
-  const id = c.req.param('id')
-  try {
-    const { results } = await c.env.DB.prepare(
-      'SELECT id, unit_id, title, content_type, order_index FROM lessons WHERE unit_id = ? ORDER BY order_index'
-    ).bind(id).all()
-    return c.json(results)
-  } catch (e) {
-    return c.json({ error: e }, 500)
-  }
-})
-
-// 4. Get single lesson content
-app.get('/api/lessons/:id', async (c) => {
-  const id = c.req.param('id')
-  try {
-    const lesson = await c.env.DB.prepare(
-      'SELECT * FROM lessons WHERE id = ?'
-    ).bind(id).first()
+    const user = c.get('user') as any
     
-    if (!lesson) return c.json({ error: 'Lesson not found' }, 404)
-    
-    return c.json(lesson)
-  } catch (e) {
-    return c.json({ error: e }, 500)
-  }
-})
-
-// 5. Record Progress
-app.post('/api/progress', async (c) => {
-  try {
-    const body = await c.req.json()
-    const { userId, lessonId, courseId, isCorrect, interactionType } = body
-
-    // 1. Log the raw interaction
-    await c.env.DB.prepare(
-      'INSERT INTO study_logs (user_id, lesson_id, interaction_type, is_correct, timestamp) VALUES (?, ?, ?, ?, ?)'
-    ).bind(userId, lessonId, interactionType || 'COMPLETION', isCorrect ? 1 : 0, Math.floor(Date.now() / 1000)).run()
-
-    // 2. Update User Course Progress (Upsert Logic)
-    // First, check if progress record exists
-    const progress = await c.env.DB.prepare(
-      'SELECT * FROM user_course_progress WHERE user_id = ? AND course_id = ?'
-    ).bind(userId, courseId).first()
-
-    if (progress) {
-      // Update existing
-      await c.env.DB.prepare(
-        'UPDATE user_course_progress SET completed_lessons_count = completed_lessons_count + 1, last_updated = ? WHERE user_id = ? AND course_id = ?'
-      ).bind(Math.floor(Date.now() / 1000), userId, courseId).run()
+    if (user) {
+      // Trusted data from Firebase Token
+      email = user.email;
+      userId = user.sub;
+      displayName = user.name || email.split('@')[0];
     } else {
-      // Insert new
-      await c.env.DB.prepare(
-        'INSERT INTO user_course_progress (user_id, course_id, completed_lessons_count, last_updated) VALUES (?, ?, 1, ?)'
-      ).bind(userId, courseId, Math.floor(Date.now() / 1000)).run()
-    }
-
-    // 3. Update BKT (Bayesian Knowledge Tracing) if lesson has a Knowledge Component
-    const lesson = await c.env.DB.prepare('SELECT kc_id FROM lessons WHERE id = ?').bind(lessonId).first()
-    
-    if (lesson && lesson.kc_id) {
-      const kcId = lesson.kc_id as string
-      
-      // Get current state
-      const kcState = await c.env.DB.prepare(
-        'SELECT p_know FROM user_kc_state WHERE user_id = ? AND kc_id = ?'
-      ).bind(userId, kcId).first()
-      
-      const currentP = kcState ? (kcState.p_know as number) : 0.01
-      const newP = calculateNewMastery(currentP, !!isCorrect)
-      
-      // Upsert new state
-      if (kcState) {
-        await c.env.DB.prepare(
-          'UPDATE user_kc_state SET p_know = ?, last_practice_time = ? WHERE user_id = ? AND kc_id = ?'
-        ).bind(newP, Math.floor(Date.now() / 1000), userId, kcId).run()
+      // Fallback to untrusted body (Dev mode or Legacy)
+      const body = await c.req.json();
+      email = body.email;
+      if (!email) return c.json({ error: 'Email is required' }, 400);
+      // Legacy/Dev: Create a deterministic UUID based on email? Or find existing?
+      // For legacy, we might not have a stable ID if we just gen random.
+      // But existing code queried by email.
+      const existingUser = await c.env.DB.prepare('SELECT * FROM users WHERE email = ?').bind(email).first();
+      if (existingUser) {
+        userId = existingUser.id as string;
+        displayName = existingUser.display_name as string;
       } else {
-        await c.env.DB.prepare(
-          'INSERT INTO user_kc_state (user_id, kc_id, p_know, last_practice_time) VALUES (?, ?, ?, ?)'
-        ).bind(userId, kcId, newP, Math.floor(Date.now() / 1000)).run()
+        userId = crypto.randomUUID();
+        displayName = email.split('@')[0];
       }
     }
 
-    return c.json({ success: true })
-  } catch (e) {
-    console.error(e)
-    return c.json({ error: 'Failed to record progress' }, 500)
-  }
-})
+    // Check if user exists (Upsert logic)
+    const existingUser = await c.env.DB.prepare(
+      'SELECT * FROM users WHERE id = ?'
+    ).bind(userId).first()
 
-// 6. Auth (Simple Login)
-app.post('/api/auth/login', async (c) => {
-  try {
-    const { email } = await c.req.json()
-    if (!email) return c.json({ error: 'Email is required' }, 400)
-
-    // Check if user exists
-    const user = await c.env.DB.prepare(
-      'SELECT * FROM users WHERE email = ?'
-    ).bind(email).first()
-
-    if (user) {
+    if (existingUser) {
       // Update last login
       await c.env.DB.prepare(
         'UPDATE users SET last_login = ? WHERE id = ?'
-      ).bind(Math.floor(Date.now() / 1000), user.id).run()
-      return c.json(user)
+      ).bind(Math.floor(Date.now() / 1000), userId).run()
+      return c.json(existingUser)
     } else {
       // Create new user
-      const newId = crypto.randomUUID()
-      const displayName = email.split('@')[0] // Default display name
-      
       await c.env.DB.prepare(
         'INSERT INTO users (id, email, display_name, last_login) VALUES (?, ?, ?, ?)'
-      ).bind(newId, email, displayName, Math.floor(Date.now() / 1000)).run()
+      ).bind(userId, email, displayName, Math.floor(Date.now() / 1000)).run()
       
-      return c.json({ id: newId, email, display_name: displayName })
+      return c.json({ id: userId, email, display_name: displayName })
     }
   } catch (e) {
     console.error(e)
     return c.json({ error: 'Login failed' }, 500)
   }
 })
+
+// ... remaining code ...
 
 // 7. AI Speech Evaluation
 app.post('/api/ai/evaluate-speech', async (c) => {
@@ -246,7 +245,7 @@ app.post('/api/ai/evaluate-speech', async (c) => {
 
     if (contentType.includes('application/json')) {
       const body = await c.req.json()
-      referenceText = body['reference_text'] as string
+      referenceText = body['referenceText'] as string
       const fileKey = body['fileKey'] as string
 
       if (fileKey) {
@@ -259,7 +258,8 @@ app.post('/api/ai/evaluate-speech', async (c) => {
     } else if (contentType.includes('multipart/form-data')) {
       const body = await c.req.parseBody()
       const audioFile = body['audio']
-      referenceText = body['reference_text'] as string
+      referenceText = body['referenceText'] as string
+      const userId = body['userId'] as string // Parsed for spec compliance/logging
 
       if (audioFile && audioFile instanceof File) {
         audioBuffer = await audioFile.arrayBuffer()
@@ -283,11 +283,13 @@ app.post('/api/ai/evaluate-speech', async (c) => {
     const transcription = aiResponse.text || ''
     
     const score = calculateSimilarity(referenceText, transcription);
+    const feedback = analyzePronunciation(referenceText, transcription);
 
     return c.json({
       score: score,
       transcription: transcription,
-      is_match: score > 80
+      is_match: score > 80,
+      feedback: feedback
     })
 
   } catch (e) {

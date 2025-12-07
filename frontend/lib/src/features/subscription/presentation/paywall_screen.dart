@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
+import '../../../core/auth/auth_repository.dart';
 import '../../../core/subscription/subscription_repository.dart';
 
 class PaywallScreen extends ConsumerStatefulWidget {
@@ -16,23 +17,41 @@ class _PaywallScreenState extends ConsumerState<PaywallScreen> {
   Future<void> _purchase() async {
     setState(() => _isLoading = true);
     try {
-      await ref.read(subscriptionRepositoryProvider.notifier).upgradeToPro();
+      await ref.read(subscriptionRepositoryProvider.notifier).startCheckoutSession();
+      // Don't close immediately, wait for user to come back.
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('Welcome to Pro!')),
+          const SnackBar(content: Text('Opening checkout... Please return here after payment.')),
         );
-        context.pop(); // Go back to where user came from
       }
     } catch (e) {
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('Purchase failed: $e')),
+          SnackBar(content: Text('Purchase initiation failed: $e')),
         );
       }
     } finally {
       if (mounted) {
         setState(() => _isLoading = false);
       }
+    }
+  }
+
+  Future<void> _refresh() async {
+    setState(() => _isLoading = true);
+    try {
+      await ref.read(subscriptionRepositoryProvider.notifier).refreshSubscriptionStatus();
+      if (mounted) {
+        final isPremium = ref.read(currentUserProvider)?.isPremium ?? false;
+        if (isPremium) {
+          ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Welcome to Pro!')));
+          context.pop();
+        } else {
+          ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Still free tier. Check back in a moment.')));
+        }
+      }
+    } finally {
+      if (mounted) setState(() => _isLoading = false);
     }
   }
 
@@ -94,13 +113,13 @@ class _PaywallScreenState extends ConsumerState<PaywallScreen> {
                     ),
                     child: _isLoading 
                         ? const CircularProgressIndicator(color: Colors.white)
-                        : const Text('Start 7-Day Free Trial', style: TextStyle(fontSize: 18)),
+                        : const Text('Checkout with Stripe (\$9.99)', style: TextStyle(fontSize: 18)),
                   ),
                 ),
                 const SizedBox(height: 16),
-                Text(
-                  '\$9.99/month after trial',
-                  style: Theme.of(context).textTheme.labelMedium,
+                TextButton(
+                  onPressed: _isLoading ? null : _refresh,
+                  child: const Text('Already paid? Refresh Status'),
                 ),
               ],
             ),
