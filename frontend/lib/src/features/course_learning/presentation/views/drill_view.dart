@@ -153,18 +153,18 @@ class _DrillViewState extends ConsumerState<DrillView> {
               );
             },
           ),
-        ),
-        Padding(
-          padding: const EdgeInsets.all(16.0),
-          child: SizedBox(
-            width: double.infinity,
-            child: FilledButton(
-              onPressed: widget.onComplete,
-              child: Text(l10n.completeDrill),
+          Padding(
+            padding: const EdgeInsets.all(16.0),
+            child: SizedBox(
+              width: double.infinity,
+              child: FilledButton(
+                onPressed: widget.onComplete,
+                child: Text(l10n.completeDrill),
+              ),
             ),
           ),
-        ),
-      ],
+        ],
+      ),
     );
   }
 }
