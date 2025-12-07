@@ -97,6 +97,7 @@ class _DrillViewState extends ConsumerState<DrillView> {
               final hasAudio = item['audio'] != null;
               final isPlaying = _playingIndex == index;
               final resultText = item['result'] ?? '';
+              final localizedResult = getLocalized(context, resultText) ?? '';
 
               return Card(
                 margin: const EdgeInsets.only(bottom: 12),
@@ -135,7 +136,7 @@ class _DrillViewState extends ConsumerState<DrillView> {
                           children: [
                             const Icon(Icons.check_circle_outline, size: 16, color: Colors.green),
                             const SizedBox(width: 8),
-                            Expanded(child: Text(getLocalized(context, resultText), style: const TextStyle(fontStyle: FontStyle.italic))),
+                            Expanded(child: Text(localizedResult, style: const TextStyle(fontStyle: FontStyle.italic))),
                           ],
                         ),
                       ),
@@ -143,7 +144,7 @@ class _DrillViewState extends ConsumerState<DrillView> {
                       Center(
                         child: RecordingWidget(
                           id: 'drill_$index',
-                          referenceText: resultText,
+                          referenceText: localizedResult,
                           lessonId: widget.lessonId,
                         ),
                       ),
