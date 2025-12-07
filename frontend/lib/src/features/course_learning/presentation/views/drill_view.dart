@@ -62,10 +62,13 @@ class _DrillViewState extends ConsumerState<DrillView> {
       final raw = jsonDecode(widget.contentJson!);
       if (raw is List) {
         items = raw.map((e) => Map<String, dynamic>.from(e as Map)).toList();
+      } else if (raw is Map && raw.containsKey('items')) {
+        final list = raw['items'] as List;
+        items = list.map((e) => Map<String, dynamic>.from(e as Map)).toList();
       }
     } catch (e) {
       print('Error parsing drill content: $e');
-      return Center(child: Text('Error loading content'));
+      return Center(child: Text('Error loading content: $e'));
     }
 
     return Column(
