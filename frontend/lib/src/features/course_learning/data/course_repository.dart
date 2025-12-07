@@ -225,6 +225,21 @@ class CourseRepository {
               if (u['lessons'] != null) {
                 final lessonsData = u['lessons'] as List;
                 for (final l in lessonsData) {
+                  String? contentJsonStr;
+                  final rawContent = l['content_json'];
+                  if (rawContent != null) {
+                    if (rawContent is String) {
+                      contentJsonStr = rawContent;
+                    } else {
+                      // If Dio parsed it as Map/List, convert back to String
+                      try {
+                        contentJsonStr = jsonEncode(rawContent);
+                      } catch (e) {
+                        print('Error encoding content_json for lesson ${l['id']}: $e');
+                      }
+                    }
+                  }
+
                   batch.insert(
                     _db.lessonsTable,
                     LessonsTableCompanion.insert(
@@ -232,7 +247,7 @@ class CourseRepository {
                       unitId: u['id'],
                       title: l['title'],
                       contentType: l['content_type'],
-                      contentJson: Value(l['content_json']), // Pre-cache content
+                      contentJson: Value(contentJsonStr), // Pre-cache content
                       orderIndex: l['order_index'],
                     ),
                     mode: InsertMode.insertOrReplace,
