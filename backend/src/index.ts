@@ -444,6 +444,39 @@ app.post('/api/learning/attempt', async (c) => {
   }
 })
 
+// 15. Record Progress (General Completion)
+app.post('/api/progress', async (c) => {
+  try {
+    const { userId: bodyUserId, courseId, lessonId, isCorrect, interactionType } = await c.req.json()
+    const user = c.get('user') as any
+    const userId = user?.sub || bodyUserId
+
+    if (!userId || !courseId || !lessonId) {
+      return c.json({ error: 'Missing required fields' }, 400)
+    }
+
+    // 1. Log interaction
+    await c.env.DB.prepare(`
+      INSERT INTO study_logs (user_id, lesson_id, interaction_type, is_correct)
+      VALUES (?, ?, ?, ?)
+    `).bind(userId, lessonId, interactionType || 'COMPLETION', isCorrect ? 1 : 0).run()
+
+    // 2. Update Course Progress (Increment count)
+    await c.env.DB.prepare(`
+      INSERT INTO user_course_progress (user_id, course_id, completed_lessons_count, last_updated)
+      VALUES (?, ?, 1, ?)
+      ON CONFLICT(user_id, course_id) DO UPDATE SET
+        completed_lessons_count = completed_lessons_count + 1,
+        last_updated = excluded.last_updated
+    `).bind(userId, courseId, Math.floor(Date.now() / 1000)).run()
+
+    return c.json({ success: true })
+  } catch (e: any) {
+    console.error('Progress Error:', e)
+    return c.json({ error: e.message }, 500)
+  }
+})
+
 // 9. Serve Audio from R2
 app.get('/:filename', async (c) => {
   const filename = c.req.param('filename')
