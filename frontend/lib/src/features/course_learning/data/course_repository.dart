@@ -124,6 +124,28 @@ class CourseRepository {
     });
   }
 
+  // Helper methods for safe type conversion
+  String _safeString(dynamic value) {
+    if (value == null) return '';
+    if (value is String) return value;
+    if (value is Map || value is List) {
+      try {
+        return jsonEncode(value);
+      } catch (e) {
+        return value.toString();
+      }
+    }
+    return value.toString();
+  }
+
+  int _safeInt(dynamic value) {
+    if (value == null) return 0;
+    if (value is int) return value;
+    if (value is double) return value.toInt();
+    if (value is String) return int.tryParse(value) ?? 0;
+    return 0;
+  }
+
   Future<void> syncCourses() async {
     if (_userId == null) return;
     try {
@@ -136,14 +158,13 @@ class CourseRepository {
       final localVersionMap = {for (var c in localCourses) c.id: c.version};
 
       // 3. Handle Deletions (Stale courses)
-      final remoteCourseIds = coursesData.map((c) => c['id'] as String).toSet();
+      final remoteCourseIds = coursesData.map((c) => _safeString(c['id'])).toSet();
       final coursesToDelete = localVersionMap.keys.where((id) => !remoteCourseIds.contains(id)).toList();
 
       if (coursesToDelete.isNotEmpty) {
         print('Deleting ${coursesToDelete.length} stale courses: $coursesToDelete');
         
         // Delete Lessons of those courses
-        // Delete from lessons where unit_id in (select id from units where course_id in coursesToDelete)
         final unitsQuery = _db.selectOnly(_db.unitsTable)
           ..addColumns([_db.unitsTable.id])
           ..where(_db.unitsTable.courseId.isIn(coursesToDelete));
@@ -167,27 +188,27 @@ class CourseRepository {
 
       await _db.batch((batch) {
         for (final c in coursesData) {
-          final remoteVersion = c['version'] ?? 1;
-          final localVersion = localVersionMap[c['id']] ?? 0;
+          final remoteVersion = _safeInt(c['version']);
+          final localVersion = localVersionMap[_safeString(c['id'])] ?? 0;
           
           if (remoteVersion > localVersion) {
-            coursesToSync.add(c['id']);
+            coursesToSync.add(_safeString(c['id']));
           }
 
           // Always update course metadata (title, desc, progress)
           batch.insert(
             _db.coursesTable,
             CoursesTableCompanion.insert(
-              id: c['id'],
-              slug: c['slug'],
-              title: c['title'],
-              description: Value(c['description']),
-              level: c['level'],
-              trackType: c['track_type'],
-              thumbnailUrl: Value(c['thumbnail_url']),
+              id: _safeString(c['id']),
+              slug: _safeString(c['slug']),
+              title: _safeString(c['title']),
+              description: Value(_safeString(c['description'])),
+              level: _safeString(c['level']),
+              trackType: _safeString(c['track_type']),
+              thumbnailUrl: Value(_safeString(c['thumbnail_url'])),
               version: Value(remoteVersion),
-              completedLessonsCount: Value(c['completed_count'] ?? 0),
-              totalLessonsCount: Value(c['total_lessons'] ?? 0),
+              completedLessonsCount: Value(_safeInt(c['completed_count'])),
+              totalLessonsCount: Value(_safeInt(c['total_lessons'])),
             ),
             mode: InsertMode.insertOrReplace,
           );
@@ -209,14 +230,15 @@ class CourseRepository {
 
           await _db.batch((batch) {
             for (final u in unitsData) {
+              final unitId = _safeString(u['id']);
               // Insert Unit
               batch.insert(
                 _db.unitsTable,
                 UnitsTableCompanion.insert(
-                  id: u['id'],
-                  courseId: u['course_id'],
-                  title: u['title'],
-                  orderIndex: u['order_index'],
+                  id: unitId,
+                  courseId: _safeString(u['course_id']),
+                  title: _safeString(u['title']),
+                  orderIndex: _safeInt(u['order_index']),
                 ),
                 mode: InsertMode.insertOrReplace,
               );
@@ -228,27 +250,19 @@ class CourseRepository {
                   String? contentJsonStr;
                   final rawContent = l['content_json'];
                   if (rawContent != null) {
-                    if (rawContent is String) {
-                      contentJsonStr = rawContent;
-                    } else {
-                      // If Dio parsed it as Map/List, convert back to String
-                      try {
-                        contentJsonStr = jsonEncode(rawContent);
-                      } catch (e) {
-                        print('Error encoding content_json for lesson ${l['id']}: $e');
-                      }
-                    }
+                     // Use helper but keep null logic for contentJson
+                     contentJsonStr = _safeString(rawContent);
                   }
 
                   batch.insert(
                     _db.lessonsTable,
                     LessonsTableCompanion.insert(
-                      id: l['id'],
-                      unitId: u['id'],
-                      title: l['title'],
-                      contentType: l['content_type'],
-                      contentJson: Value(contentJsonStr), // Pre-cache content
-                      orderIndex: l['order_index'],
+                      id: _safeString(l['id']),
+                      unitId: unitId,
+                      title: _safeString(l['title']),
+                      contentType: _safeString(l['content_type']),
+                      contentJson: Value(contentJsonStr), 
+                      orderIndex: _safeInt(l['order_index']),
                     ),
                     mode: InsertMode.insertOrReplace,
                   );
