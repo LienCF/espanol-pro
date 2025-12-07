@@ -9,7 +9,7 @@ class AppDatabase extends _$AppDatabase {
   AppDatabase([QueryExecutor? e]) : super(e ?? openConnection());
 
   @override
-  int get schemaVersion => 3;
+  int get schemaVersion => 4;
 
   @override
   MigrationStrategy get migration {
@@ -23,6 +23,13 @@ class AppDatabase extends _$AppDatabase {
         }
         if (from < 3) {
           await m.createTable(offlineAssetsTable);
+        }
+        if (from < 4) {
+          // Purge tables to fix corrupted JSON data in IndexedDB
+          for (final table in [lessonsTable, unitsTable, coursesTable]) {
+            await m.deleteTable(table.actualTableName);
+            await m.createTable(table);
+          }
         }
       },
     );
