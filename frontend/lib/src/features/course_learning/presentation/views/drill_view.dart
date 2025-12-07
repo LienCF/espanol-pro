@@ -84,10 +84,12 @@ class _DrillViewState extends ConsumerState<DrillView> {
       );
     }
 
-    return Column(
-      children: [
-        Expanded(
-          child: ListView.builder(
+    return SingleChildScrollView(
+      child: Column(
+        children: [
+          ListView.builder(
+            shrinkWrap: true,
+            physics: const NeverScrollableScrollPhysics(),
             padding: const EdgeInsets.all(16),
             itemCount: items.length,
             itemBuilder: (context, index) {
