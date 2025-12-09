@@ -7,7 +7,6 @@ import 'package:mockito/mockito.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:frontend/main.dart';
 import 'package:frontend/src/core/api/api_client.dart';
-import 'package:frontend/src/core/auth/auth_repository.dart';
 import 'package:frontend/src/features/authentication/presentation/login_screen.dart';
 import 'package:frontend/src/features/dashboard/presentation/dashboard_screen.dart';
 import 'package:frontend/src/features/subscription/presentation/paywall_screen.dart';
@@ -64,7 +63,7 @@ void main() {
     mockUrlLauncher = MockUrlLauncher();
     mockDb = AppDatabase(NativeDatabase.memory());
     UrlLauncherPlatform.instance = mockUrlLauncher;
-    
+
     SharedPreferences.setMockInitialValues({});
   });
 
@@ -72,44 +71,56 @@ void main() {
     await mockDb.close();
   });
 
-  testWidgets('Full App Flow: Login -> Dashboard -> Paywall -> Content', (tester) async {
+  testWidgets('Full App Flow: Login -> Dashboard -> Paywall -> Content', (
+    tester,
+  ) async {
     // 1. Setup API Mocks (Still needed for Login/Checkout which call API directly)
-    
+
     // Catch-all for GET requests to prevent FakeUsedError in background syncs
-    when(mockDio.get(any, queryParameters: anyNamed('queryParameters')))
-        .thenAnswer((_) async => Response(
-          requestOptions: RequestOptions(path: 'any'),
-          data: [],
-          statusCode: 200,
-        ));
+    when(
+      mockDio.get(any, queryParameters: anyNamed('queryParameters')),
+    ).thenAnswer(
+      (_) async => Response(
+        requestOptions: RequestOptions(path: 'any'),
+        data: [],
+        statusCode: 200,
+      ),
+    );
 
     // Setup Auth Service Mocks
     when(mockAuthService.initialize()).thenAnswer((_) async {});
-    when(mockAuthService.signInWithEmailAndPassword(any, any)).thenThrow(Exception('Firebase Mock Fail'));
+    when(
+      mockAuthService.signInWithEmailAndPassword(any, any),
+    ).thenThrow(Exception('Firebase Mock Fail'));
 
     // Login Response
-    when(mockDio.post(
-      '/api/auth/login', 
-      data: anyNamed('data'), 
-      options: anyNamed('options')
-    )).thenAnswer((_) async => Response(
-      requestOptions: RequestOptions(path: '/api/auth/login'),
-      data: {
-        'id': 'user_1',
-        'email': 'test@example.com',
-        'display_name': 'Test User',
-        'is_premium': false
-      },
-      statusCode: 200,
-    ));
+    when(
+      mockDio.post(
+        '/api/auth/login',
+        data: anyNamed('data'),
+        options: anyNamed('options'),
+      ),
+    ).thenAnswer(
+      (_) async => Response(
+        requestOptions: RequestOptions(path: '/api/auth/login'),
+        data: {
+          'id': 'user_1',
+          'email': 'test@example.com',
+          'display_name': 'Test User',
+          'is_premium': false,
+        },
+        statusCode: 200,
+      ),
+    );
 
     // Checkout Session
-    when(mockDio.post('/api/payments/create-checkout-session'))
-        .thenAnswer((_) async => Response(
-          requestOptions: RequestOptions(path: '/checkout'),
-          data: {'url': 'https://checkout.stripe.com/test'},
-          statusCode: 200,
-        ));
+    when(mockDio.post('/api/payments/create-checkout-session')).thenAnswer(
+      (_) async => Response(
+        requestOptions: RequestOptions(path: '/checkout'),
+        data: {'url': 'https://checkout.stripe.com/test'},
+        statusCode: 200,
+      ),
+    );
 
     // Mock Data for Providers
     final mockCourses = [
@@ -175,31 +186,35 @@ void main() {
     // 5. Purchase Flow
     await tester.tap(find.textContaining('Checkout with Stripe'));
     await tester.pump(); // Start async
-    
+
     // Verify URL Launched
     expect(mockUrlLauncher.launchedUrl, 'https://checkout.stripe.com/test');
 
     // 6. Refresh Status (Simulate Webhook success)
     // Mock Login call again with premium = true
-    when(mockDio.post(
-      '/api/auth/login', 
-      data: anyNamed('data'), 
-      options: anyNamed('options')
-    )).thenAnswer((_) async => Response(
-      requestOptions: RequestOptions(path: '/api/auth/login'),
-      data: {
-        'id': 'user_1',
-        'email': 'test@example.com',
-        'display_name': 'Test User',
-        'is_premium': true // Now Premium
-      },
-      statusCode: 200,
-    ));
+    when(
+      mockDio.post(
+        '/api/auth/login',
+        data: anyNamed('data'),
+        options: anyNamed('options'),
+      ),
+    ).thenAnswer(
+      (_) async => Response(
+        requestOptions: RequestOptions(path: '/api/auth/login'),
+        data: {
+          'id': 'user_1',
+          'email': 'test@example.com',
+          'display_name': 'Test User',
+          'is_premium': true, // Now Premium
+        },
+        statusCode: 200,
+      ),
+    );
 
     await tester.tap(find.text('Already paid? Refresh Status'));
     // Use explicit pumps instead of pumpAndSettle
-    await tester.pump(const Duration(seconds: 2)); 
-    await tester.pump(); 
+    await tester.pump(const Duration(seconds: 2));
+    await tester.pump();
 
     // Should go back to Dashboard?
     expect(find.byType(DashboardScreen), findsOneWidget);
@@ -209,6 +224,5 @@ void main() {
     // `refreshSubscriptionStatus` updates `currentUserProvider` via `authRepository.login`.
     // So Dashboard should rebuild.
     expect(find.text('Go Pro'), findsNothing);
-
   });
 }

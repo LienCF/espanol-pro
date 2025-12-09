@@ -9,7 +9,8 @@ class CoursesTable extends Table {
   TextColumn get trackType => text()(); // GENERAL or SPECIALIZED
   TextColumn get thumbnailUrl => text().nullable()();
   IntColumn get version => integer().withDefault(const Constant(1))();
-  IntColumn get completedLessonsCount => integer().withDefault(const Constant(0))();
+  IntColumn get completedLessonsCount =>
+      integer().withDefault(const Constant(0))();
   IntColumn get totalLessonsCount => integer().withDefault(const Constant(0))();
 
   @override
@@ -43,7 +44,8 @@ class LocalProgressTable extends Table {
   TextColumn get lessonId => text().references(LessonsTable, #id)();
   BoolColumn get isCompleted => boolean().withDefault(const Constant(false))();
   IntColumn get score => integer().nullable()();
-  DateTimeColumn get lastUpdated => dateTime().withDefault(currentDateAndTime)();
+  DateTimeColumn get lastUpdated =>
+      dateTime().withDefault(currentDateAndTime)();
 
   @override
   Set<Column> get primaryKey => {lessonId};
@@ -61,7 +63,8 @@ class OfflineAssetsTable extends Table {
   TextColumn get url => text()(); // Remote URL (Primary Key)
   TextColumn get localPath => text()(); // Local file system path
   IntColumn get fileSize => integer().nullable()();
-  DateTimeColumn get downloadedAt => dateTime().withDefault(currentDateAndTime)();
+  DateTimeColumn get downloadedAt =>
+      dateTime().withDefault(currentDateAndTime)();
 
   @override
   Set<Column> get primaryKey => {url};

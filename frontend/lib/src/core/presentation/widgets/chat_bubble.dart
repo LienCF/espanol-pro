@@ -24,15 +24,18 @@ class ChatBubble extends StatelessWidget {
     return Padding(
       padding: const EdgeInsets.symmetric(vertical: 8.0, horizontal: 4.0),
       child: Row(
-        mainAxisAlignment: isMe ? MainAxisAlignment.end : MainAxisAlignment.start,
+        mainAxisAlignment: isMe
+            ? MainAxisAlignment.end
+            : MainAxisAlignment.start,
         crossAxisAlignment: CrossAxisAlignment.end,
         children: [
           if (!isMe) _buildAvatar(context),
           const SizedBox(width: 8),
           Flexible(
             child: Column(
-              crossAxisAlignment:
-                  isMe ? CrossAxisAlignment.end : CrossAxisAlignment.start,
+              crossAxisAlignment: isMe
+                  ? CrossAxisAlignment.end
+                  : CrossAxisAlignment.start,
               children: [
                 if (displayName != null && !isMe)
                   Padding(
@@ -51,12 +54,18 @@ class ChatBubble extends StatelessWidget {
                     horizontal: 16.0,
                   ),
                   decoration: BoxDecoration(
-                    color: isMe ? colorScheme.primary : colorScheme.surfaceContainerHighest,
+                    color: isMe
+                        ? colorScheme.primary
+                        : colorScheme.surfaceContainerHighest,
                     borderRadius: BorderRadius.only(
                       topLeft: const Radius.circular(20),
                       topRight: const Radius.circular(20),
-                      bottomLeft: isMe ? const Radius.circular(20) : const Radius.circular(4),
-                      bottomRight: isMe ? const Radius.circular(4) : const Radius.circular(20),
+                      bottomLeft: isMe
+                          ? const Radius.circular(20)
+                          : const Radius.circular(4),
+                      bottomRight: isMe
+                          ? const Radius.circular(4)
+                          : const Radius.circular(20),
                     ),
                     boxShadow: [
                       BoxShadow(
@@ -72,7 +81,9 @@ class ChatBubble extends StatelessWidget {
                       Text(
                         message,
                         style: theme.textTheme.bodyLarge?.copyWith(
-                          color: isMe ? colorScheme.onPrimary : colorScheme.onSurfaceVariant,
+                          color: isMe
+                              ? colorScheme.onPrimary
+                              : colorScheme.onSurfaceVariant,
                         ),
                       ),
                       if (correction != null) ...[
@@ -86,7 +97,11 @@ class ChatBubble extends StatelessWidget {
                           ),
                           child: Row(
                             children: [
-                              Icon(Icons.lightbulb_outline, size: 16, color: Colors.amber.shade900),
+                              Icon(
+                                Icons.lightbulb_outline,
+                                size: 16,
+                                color: Colors.amber.shade900,
+                              ),
                               const SizedBox(width: 8),
                               Expanded(
                                 child: Text(
@@ -117,15 +132,22 @@ class ChatBubble extends StatelessWidget {
   Widget _buildAvatar(BuildContext context) {
     return CircleAvatar(
       radius: 16,
-      backgroundColor: isMe 
-          ? Theme.of(context).colorScheme.primaryContainer 
+      backgroundColor: isMe
+          ? Theme.of(context).colorScheme.primaryContainer
           : Theme.of(context).colorScheme.secondaryContainer,
       child: avatarUrl != null
-          ? ClipOval(child: Image.network(avatarUrl!, width: 32, height: 32, fit: BoxFit.cover))
+          ? ClipOval(
+              child: Image.network(
+                avatarUrl!,
+                width: 32,
+                height: 32,
+                fit: BoxFit.cover,
+              ),
+            )
           : Icon(
               isMe ? Icons.person : Icons.smart_toy,
               size: 18,
-              color: isMe 
+              color: isMe
                   ? Theme.of(context).colorScheme.onPrimaryContainer
                   : Theme.of(context).colorScheme.onSecondaryContainer,
             ),

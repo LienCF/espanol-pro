@@ -22,14 +22,16 @@ void main() {
     mockDio = MockDio();
   });
 
-  testWidgets('Roleplay View displays correction when API returns one', (tester) async {
+  testWidgets('Roleplay View displays correction when API returns one', (
+    tester,
+  ) async {
     // 1. Setup Mock Data
     const lessonId = 'lesson_1';
     const roleplayContent = {
       'system_prompt': 'You are a tutor.',
-      'initial_message': 'Hola, ¿cómo estás?'
+      'initial_message': 'Hola, ¿cómo estás?',
     };
-    
+
     final mockLesson = Lesson(
       id: lessonId,
       unitId: 'unit_1',
@@ -45,7 +47,9 @@ void main() {
       ProviderScope(
         overrides: [
           apiClientProvider.overrideWithValue(mockDio),
-          lessonDetailProvider(lessonId).overrideWith((ref) => Stream.value(mockLesson)),
+          lessonDetailProvider(
+            lessonId,
+          ).overrideWith((ref) => Stream.value(mockLesson)),
         ],
         child: const MaterialApp(
           localizationsDelegates: [
@@ -66,19 +70,22 @@ void main() {
     expect(find.text('Hola, ¿cómo estás?'), findsOneWidget);
 
     // 4. Mock API Response with Correction (Setup BEFORE interaction)
-    when(mockDio.post(
-      '/api/ai/chat',
-      data: anyNamed('data'),
-    )).thenAnswer((_) async => Response(
-      requestOptions: RequestOptions(path: '/api/ai/chat'),
-      data: {
-        'response': 'Estoy bien también. [CORRECTION: Yo estoy bien - I am well (Estary vs Ser)]'
-      },
-      statusCode: 200,
-    ));
+    when(mockDio.post('/api/ai/chat', data: anyNamed('data'))).thenAnswer(
+      (_) async => Response(
+        requestOptions: RequestOptions(path: '/api/ai/chat'),
+        data: {
+          'response':
+              'Estoy bien también. [CORRECTION: Yo estoy bien - I am well (Estary vs Ser)]',
+        },
+        statusCode: 200,
+      ),
+    );
 
     // 5. Simulate User Typing "Yo estoy bien" (Grammatically okay but let's pretend we get a correction for test sake)
-    await tester.enterText(find.byType(TextField), 'Yo soy bien'); // Intentional error
+    await tester.enterText(
+      find.byType(TextField),
+      'Yo soy bien',
+    ); // Intentional error
     await tester.tap(find.byIcon(Icons.send));
     await tester.pump(); // Rebuild for typing state
 
@@ -86,7 +93,10 @@ void main() {
 
     // 6. Verify Response and Correction
     expect(find.text('Estoy bien también.'), findsOneWidget);
-    expect(find.text('Yo estoy bien - I am well (Estary vs Ser)'), findsOneWidget);
+    expect(
+      find.text('Yo estoy bien - I am well (Estary vs Ser)'),
+      findsOneWidget,
+    );
     expect(find.byIcon(Icons.lightbulb_outline), findsOneWidget);
   });
 }

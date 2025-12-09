@@ -10,7 +10,8 @@ abstract class Lesson with _$Lesson {
     @JsonKey(name: 'unit_id') required String unitId,
     required String title,
     @JsonKey(name: 'content_type') required String contentType,
-    @JsonKey(name: 'content_json') String? contentJson, // Raw JSON string of content
+    @JsonKey(name: 'content_json')
+    String? contentJson, // Raw JSON string of content
     @JsonKey(name: 'order_index') required int orderIndex,
     @Default(false) bool isCompleted,
   }) = _Lesson;

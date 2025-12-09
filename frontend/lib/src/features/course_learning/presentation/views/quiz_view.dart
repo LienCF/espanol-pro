@@ -7,7 +7,11 @@ class QuizView extends StatefulWidget {
   final String? contentJson;
   final Function(int score) onComplete;
 
-  const QuizView({super.key, required this.contentJson, required this.onComplete});
+  const QuizView({
+    super.key,
+    required this.contentJson,
+    required this.onComplete,
+  });
 
   @override
   State<QuizView> createState() => _QuizViewState();
@@ -118,8 +122,10 @@ class _QuizViewState extends State<QuizView> {
                 foregroundColor = Colors.red.shade900;
               }
             } else if (index == _selectedOptionIndex) {
-               backgroundColor = Theme.of(context).colorScheme.primaryContainer;
-               foregroundColor = Theme.of(context).colorScheme.onPrimaryContainer;
+              backgroundColor = Theme.of(context).colorScheme.primaryContainer;
+              foregroundColor = Theme.of(
+                context,
+              ).colorScheme.onPrimaryContainer;
             }
 
             return Padding(
@@ -133,7 +139,9 @@ class _QuizViewState extends State<QuizView> {
                     color: _isAnswered && index == question['correctIndex']
                         ? Colors.green
                         : Theme.of(context).colorScheme.outline,
-                    width: _isAnswered && index == question['correctIndex'] ? 2 : 1,
+                    width: _isAnswered && index == question['correctIndex']
+                        ? 2
+                        : 1,
                   ),
                 ),
                 onPressed: () => _handleAnswer(index),
@@ -146,7 +154,11 @@ class _QuizViewState extends State<QuizView> {
             FilledButton.icon(
               onPressed: _nextQuestion,
               icon: const Icon(Icons.arrow_forward),
-              label: Text(_currentIndex < _questions.length - 1 ? l10n.nextQuestion : l10n.finishQuiz),
+              label: Text(
+                _currentIndex < _questions.length - 1
+                    ? l10n.nextQuestion
+                    : l10n.finishQuiz,
+              ),
             ),
         ],
       ),

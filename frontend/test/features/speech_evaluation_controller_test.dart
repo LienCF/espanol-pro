@@ -1,4 +1,3 @@
-import 'dart:io';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:mockito/annotations.dart';
@@ -36,7 +35,9 @@ void main() {
 
   test('startRecording should update state to recording', () async {
     final container = createContainer();
-    final controller = container.read(speechEvaluationControllerProvider('test').notifier);
+    final controller = container.read(
+      speechEvaluationControllerProvider('test').notifier,
+    );
 
     await controller.startRecording();
 
@@ -47,57 +48,79 @@ void main() {
     verify(mockRecorder.startRecording()).called(1);
   });
 
-  test('stopRecordingAndEvaluate should update state to success on success', () async {
-    final container = createContainer();
-    final controller = container.read(speechEvaluationControllerProvider('test').notifier);
+  test(
+    'stopRecordingAndEvaluate should update state to success on success',
+    () async {
+      final container = createContainer();
+      final controller = container.read(
+        speechEvaluationControllerProvider('test').notifier,
+      );
 
-    // Mock behaviors
-    when(mockRecorder.stopRecording()).thenAnswer((_) async => '/tmp/audio.m4a');
-    when(mockRepo.evaluateSpeech(
-      audioFile: anyNamed('audioFile'), 
-      referenceText: anyNamed('referenceText')
-    )).thenAnswer((_) async => const SpeechEvaluationResult(
-      score: 90, 
-      transcription: 'Hola', 
-      isMatch: true, 
-      feedback: ['Good job']
-    ));
+      // Mock behaviors
+      when(
+        mockRecorder.stopRecording(),
+      ).thenAnswer((_) async => '/tmp/audio.m4a');
+      when(
+        mockRepo.evaluateSpeech(
+          audioFile: anyNamed('audioFile'),
+          referenceText: anyNamed('referenceText'),
+        ),
+      ).thenAnswer(
+        (_) async => const SpeechEvaluationResult(
+          score: 90,
+          transcription: 'Hola',
+          isMatch: true,
+          feedback: ['Good job'],
+        ),
+      );
 
-    // Simulate flow
-    await controller.startRecording(); // Enter recording state
-    await controller.stopRecordingAndEvaluate('Hola');
+      // Simulate flow
+      await controller.startRecording(); // Enter recording state
+      await controller.stopRecordingAndEvaluate('Hola');
 
-    final state = container.read(speechEvaluationControllerProvider('test'));
-    
-    expect(state, isA<SpeechEvaluationState>());
-    state.mapOrNull(
-      success: (s) {
-        expect(s.result.score, 90);
-        expect(s.result.isMatch, true);
-      },
-    );
+      final state = container.read(speechEvaluationControllerProvider('test'));
 
-    verify(mockRecorder.stopRecording()).called(1);
-    verify(mockRepo.evaluateSpeech(
-      audioFile: anyNamed('audioFile'), 
-      referenceText: 'Hola'
-    )).called(1);
-  });
+      expect(state, isA<SpeechEvaluationState>());
+      state.mapOrNull(
+        success: (s) {
+          expect(s.result.score, 90);
+          expect(s.result.isMatch, true);
+        },
+      );
 
-  test('stopRecordingAndEvaluate should update state to error on failure', () async {
-    final container = createContainer();
-    final controller = container.read(speechEvaluationControllerProvider('test').notifier);
+      verify(mockRecorder.stopRecording()).called(1);
+      verify(
+        mockRepo.evaluateSpeech(
+          audioFile: anyNamed('audioFile'),
+          referenceText: 'Hola',
+        ),
+      ).called(1);
+    },
+  );
 
-    when(mockRecorder.stopRecording()).thenAnswer((_) async => '/tmp/audio.m4a');
-    when(mockRepo.evaluateSpeech(
-      audioFile: anyNamed('audioFile'), 
-      referenceText: anyNamed('referenceText')
-    )).thenThrow(Exception('API Error'));
+  test(
+    'stopRecordingAndEvaluate should update state to error on failure',
+    () async {
+      final container = createContainer();
+      final controller = container.read(
+        speechEvaluationControllerProvider('test').notifier,
+      );
 
-    await controller.stopRecordingAndEvaluate('Hola');
+      when(
+        mockRecorder.stopRecording(),
+      ).thenAnswer((_) async => '/tmp/audio.m4a');
+      when(
+        mockRepo.evaluateSpeech(
+          audioFile: anyNamed('audioFile'),
+          referenceText: anyNamed('referenceText'),
+        ),
+      ).thenThrow(Exception('API Error'));
 
-    final state = container.read(speechEvaluationControllerProvider('test'));
-    
-    expect(state, const SpeechEvaluationState.error('Exception: API Error'));
-  });
+      await controller.stopRecordingAndEvaluate('Hola');
+
+      final state = container.read(speechEvaluationControllerProvider('test'));
+
+      expect(state, const SpeechEvaluationState.error('Exception: API Error'));
+    },
+  );
 }

@@ -4,7 +4,16 @@ import 'local_db_schema.dart';
 
 part 'app_database.g.dart';
 
-@DriftDatabase(tables: [CoursesTable, UnitsTable, LessonsTable, LocalProgressTable, PendingRequestsTable, OfflineAssetsTable])
+@DriftDatabase(
+  tables: [
+    CoursesTable,
+    UnitsTable,
+    LessonsTable,
+    LocalProgressTable,
+    PendingRequestsTable,
+    OfflineAssetsTable,
+  ],
+)
 class AppDatabase extends _$AppDatabase {
   AppDatabase([QueryExecutor? e]) : super(e ?? openConnection());
 
@@ -26,10 +35,12 @@ class AppDatabase extends _$AppDatabase {
         }
         if (from < 4) {
           // Purge tables to fix corrupted JSON data in IndexedDB
-          for (final table in [lessonsTable, unitsTable, coursesTable]) {
-            await m.deleteTable(table.actualTableName);
-            await m.createTable(table);
-          }
+          await m.deleteTable(lessonsTable.actualTableName);
+          await m.createTable(lessonsTable);
+          await m.deleteTable(unitsTable.actualTableName);
+          await m.createTable(unitsTable);
+          await m.deleteTable(coursesTable.actualTableName);
+          await m.createTable(coursesTable);
         }
       },
     );

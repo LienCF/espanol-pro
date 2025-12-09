@@ -69,6 +69,186 @@ Uploads a user's recorded audio file, transcribes it using Whisper, compares it 
 *   `413 Payload Too Large`: Audio file > 2MB.
 *   `500 Internal Server Error`: AI Inference failed.
 
+### 3.2 AI Roleplay Chat API
+
+**Endpoint:** `POST /api/ai/chat`
+
+**Description:**
+Facilitates a turn-based roleplay conversation with an AI tutor ("Carlos"). It persists conversation history in D1 and injects grammar corrections into the AI's response.
+
+**Request Body (JSON):**
+```json
+{
+  "message": "Hola, me llamo Juan.",
+  "conversationId": "uuid-v4-optional", 
+  "reset": false
+}
+```
+*   `message` (String): The user's latest input.
+*   `conversationId` (String, Optional): Identifier for the conversation session. If omitted or new, a new ID is generated.
+*   `reset` (Boolean, Optional): If true, clears history for this `conversationId`.
+
+**Process Flow:**
+1.  **Context Retrieval:**
+    *   If `conversationId` is provided, fetch last 10 messages from D1 (`chat_history` table).
+    *   If `reset` is true, delete/archive old messages.
+2.  **Prompt Engineering:**
+    *   System Prompt: "You are Carlos, a friendly Spanish tutor from Mexico. You are roleplaying a scenario: {scenario}. Keep responses concise (under 50 words) and suitable for A2 level learners. IMPORTANT: If the user makes a grammatical error, reply naturally first, then append a correction at the very end in this specific format: `[CORRECTION: <Spanish correction> - <English explanation>]`."
+    *   Append User Message.
+3.  **Inference:**
+    *   Model: `@cf/meta/llama-3.1-8b-instruct`.
+    *   Input: `[System, User_1, AI_1, ..., User_N]`.
+4.  **Persistence:**
+    *   Save `User Message` to D1.
+    *   Save `AI Response` to D1.
+5.  **Response:** Return the AI's text and the `conversationId`.
+
+**Response Body (JSON):**
+```json
+{
+  "response": "¡Hola Juan! Mucho gusto. ¿De dónde eres? [CORRECTION: Hola, me llamo Juan - Correct, but 'Soy Juan' is more natural]",
+  "conversationId": "123e4567-e89b-12d3-a456-426614174000"
+}
+```
+
+### 3.3 BKT (Bayesian Knowledge Tracing) Engine
+
+**Concept:**
+BKT tracks the probability $P(L_n)$ that a user has mastered a skill (Knowledge Component, KC) at step $n$.
+
+**Model Parameters:**
+*   $P(L_0)$: Initial probability of knowing the skill (Prior). Default: 0.1
+*   $P(T)$: Probability of learning the skill at each step (Transition). Default: 0.1
+*   $P(S)$: Probability of slipping (knowing the skill but answering incorrectly). Default: 0.1
+*   $P(G)$: Probability of guessing (not knowing the skill but answering correctly). Default: 0.2
+
+**Update Rule (Posterior Calculation):**
+Given the user's performance at step $n$ (Correct or Incorrect):
+
+1.  **Calculate Posterior $P(L_n | \text{Observation})$:**
+    *   If Correct:
+        $$P(L_n | \text{Correct}) = \frac{P(L_{n-1}) \cdot (1 - P(S))}{P(L_{n-1}) \cdot (1 - P(S)) + (1 - P(L_{n-1})) \cdot P(G)}$$
+    *   If Incorrect:
+        $$P(L_n | \text{Incorrect}) = \frac{P(L_{n-1}) \cdot P(S)}{P(L_{n-1}) \cdot P(S) + (1 - P(L_{n-1})) \cdot (1 - P(G))}$$
+
+2.  **Account for Learning (Transition):**
+    $$P(L_n) = P(L_n | \text{Observation}) + (1 - P(L_n | \text{Observation})) \cdot P(T)$$
+
+**API Endpoint:** `POST /api/learning/attempt`
+
+**Description:**
+Records a learning attempt for a specific lesson, identifies the associated Knowledge Component (KC), and updates the user's mastery probability using BKT.
+
+**Request Body (JSON):**
+```json
+{
+  "userId": "user_123",
+  "lessonId": "lesson_456",
+  "isCorrect": true
+}
+```
+
+**Process Flow:**
+1.  **Lookup:** Fetch `kc_id` for the given `lesson_id`. If none, skip BKT (return status `skipped`).
+2.  **Fetch State:** Retrieve current $P(L_{n-1})$ from `user_kc_state` for (`user_id`, `kc_id`). If not found, use default $P(L_0)$.
+3.  **Calculate:** Apply BKT update rule to compute $P(L_n)$.
+4.  **Persist:** Upsert new $P(L_n)$ into `user_kc_state`. Log raw interaction to `study_logs`.
+5.  **Return:** The new mastery level and delta.
+
+**Response Body (JSON):**
+```json
+{
+  "kcId": "kc_subjunctive_present",
+  "previousMastery": 0.45,
+  "newMastery": 0.52,
+  "delta": 0.07
+}
+```
+
+### 3.4 Gamification & Social Services (Phase 5)
+
+**Overview:**
+To increase retention, we introduce Streaks, XP, and Leaderboards.
+
+#### 3.4.1 Streak Tracking
+**Goal:** Encourage daily usage.
+*   **Logic:** A "Streak" increments if the user completes at least one lesson (or AI interaction) on consecutive days (UTC).
+*   **Storage:** `user_streaks` table in D1.
+*   **Update Trigger:** Checked/Updated on every `/api/learning/attempt` or `/api/progress` call.
+
+#### 3.4.2 Experience Points (XP)
+**Goal:** Quantify effort.
+*   **Scoring:**
+    *   Lesson Completion: +10 XP
+    *   Perfect Score (Quiz): +50 XP
+    *   Daily Streak Bonus: +10 XP * Streak Days (Cap at 100)
+*   **Storage:** `users.total_xp` (Denormalized) and `xp_logs` (Audit).
+
+#### 3.4.3 Leaderboard API
+**Endpoint:** `GET /api/leaderboard`
+**Parameters:**
+*   `type`: `global` (default) or `friends`.
+*   `period`: `weekly` (default) or `all_time`.
+
+**Response Body (JSON):**
+```json
+{
+  "period": "weekly",
+  "leaderboard": [
+    { "rank": 1, "userId": "u1", "displayName": "Maria", "xp": 1500, "avatarUrl": "..." },
+    { "rank": 2, "userId": "u2", "displayName": "John", "xp": 1200, "avatarUrl": "..." }
+  ],
+  "userRank": { "rank": 45, "xp": 300 }
+}
+```
+
+### 3.5 Admin & Content Management (Phase 6.1)
+
+**Goal:** Allow non-technical staff to manage course content without touching DB scripts.
+
+#### 3.5.1 Admin API
+**Endpoint:** `POST /api/admin/content`
+*   **Action:** Create or Update Course/Unit/Lesson.
+*   **Auth:** Requires `role: 'admin'` in JWT token.
+*   **Body:** JSON payload matching the DB schema.
+
+#### 3.5.2 Admin Dashboard (Web)
+*   **Route:** `/admin`
+*   **Features:**
+    *   List Courses (CRUD).
+    *   Lesson Editor: JSON editor for `content_json` with schema validation.
+    *   User Management: View user stats, grant premium manually.
+
+### 3.6 Analytics & Monitoring (Phase 6.2)
+
+**Goal:** Track KPI metrics.
+
+#### 3.6.1 Event Tracking
+**Endpoint:** `POST /api/analytics/event`
+*   **Body:** `{ "event": "lesson_start", "properties": { "lessonId": "..." } }`
+*   **Storage:** R2 Log files (batched) or specialized Analytics Engine (if available). For MVP, store in `analytics_events` D1 table (TTL 30 days).
+
+### 3.7 Mobile Release Configuration (Phase 6.3)
+
+**Goal:** Prepare binaries for App Store & Play Store.
+
+*   **Android:**
+    *   Signing Config (`key.properties`).
+    *   Permissions (`AndroidManifest.xml`): Internet, Microphone.
+*   **iOS:**
+    *   Capabilities: Background Audio (optional), Microphone Usage Description.
+    *   Signing: Xcode managed profile.
+
+### 3.8 Advanced AI Features (Phase 6.4)
+
+#### 3.8.1 AI Lesson Generator
+**Endpoint:** `POST /api/ai/generate-lesson`
+*   **Input:** `{ "topic": "Ordering Coffee", "level": "A1" }`
+*   **Process:**
+    1.  Llama 3 generates a dialogue JSON.
+    2.  (Optional) TTS generates audio for lines.
+*   **Output:** `Lesson` object (JSON).
+
 ---
 
 ## 第二部分：跨平台客戶端開發規劃 (Flutter)

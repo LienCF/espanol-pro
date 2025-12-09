@@ -4,11 +4,12 @@ import 'controllers/speech_evaluation_controller.dart';
 
 class RecordingWidget extends ConsumerWidget {
   final String referenceText;
-  final String id; // Unique ID for this recording session (e.g., drill item index)
+  final String
+  id; // Unique ID for this recording session (e.g., drill item index)
   final String lessonId;
 
   const RecordingWidget({
-    super.key, 
+    super.key,
     required this.referenceText,
     required this.id,
     required this.lessonId,
@@ -18,22 +19,24 @@ class RecordingWidget extends ConsumerWidget {
   Widget build(BuildContext context, WidgetRef ref) {
     // Watch the specific controller family member for this item
     final state = ref.watch(speechEvaluationControllerProvider(id));
-    final controller = ref.read(speechEvaluationControllerProvider(id).notifier);
+    final controller = ref.read(
+      speechEvaluationControllerProvider(id).notifier,
+    );
 
     return Column(
       children: [
         _buildActionButton(context, state, controller),
         // Only show status if NOT in initial state
-        if (state != const SpeechEvaluationState.initial()) 
+        if (state != const SpeechEvaluationState.initial())
           _buildStatusMessage(context, state),
       ],
     );
   }
 
   Widget _buildActionButton(
-    BuildContext context, 
-    SpeechEvaluationState state, 
-    SpeechEvaluationController controller
+    BuildContext context,
+    SpeechEvaluationState state,
+    SpeechEvaluationController controller,
   ) {
     return state.when(
       initial: () => IconButton(
@@ -43,15 +46,16 @@ class RecordingWidget extends ConsumerWidget {
         color: Theme.of(context).primaryColor,
       ),
       recording: () => IconButton(
-        onPressed: () => controller.stopRecordingAndEvaluate(referenceText, lessonId),
+        onPressed: () =>
+            controller.stopRecordingAndEvaluate(referenceText, lessonId),
         icon: const Icon(Icons.stop_circle),
         tooltip: 'Stop & Evaluate',
         color: Colors.red,
         iconSize: 32,
       ),
       processing: () => const SizedBox(
-        width: 24, 
-        height: 24, 
+        width: 24,
+        height: 24,
         child: CircularProgressIndicator(strokeWidth: 2),
       ),
       success: (result) => IconButton(
@@ -68,7 +72,10 @@ class RecordingWidget extends ConsumerWidget {
     );
   }
 
-  Widget _buildStatusMessage(BuildContext context, SpeechEvaluationState state) {
+  Widget _buildStatusMessage(
+    BuildContext context,
+    SpeechEvaluationState state,
+  ) {
     return state.maybeWhen(
       success: (result) => Padding(
         padding: const EdgeInsets.only(top: 4.0),
@@ -97,7 +104,10 @@ class RecordingWidget extends ConsumerWidget {
           style: TextStyle(color: Theme.of(context).colorScheme.error),
         ),
       ),
-      recording: () => const Text('Recording...', style: TextStyle(fontSize: 10, color: Colors.red)),
+      recording: () => const Text(
+        'Recording...',
+        style: TextStyle(fontSize: 10, color: Colors.red),
+      ),
       orElse: () => const SizedBox.shrink(),
     );
   }

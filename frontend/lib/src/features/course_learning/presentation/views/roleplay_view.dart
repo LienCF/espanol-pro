@@ -10,7 +10,11 @@ class RoleplayView extends ConsumerStatefulWidget {
   final String? contentJson;
   final VoidCallback onComplete;
 
-  const RoleplayView({super.key, required this.contentJson, required this.onComplete});
+  const RoleplayView({
+    super.key,
+    required this.contentJson,
+    required this.onComplete,
+  });
 
   @override
   ConsumerState<RoleplayView> createState() => _RoleplayViewState();
@@ -26,9 +30,12 @@ class _RoleplayViewState extends ConsumerState<RoleplayView> {
     WidgetsBinding.instance.addPostFrameCallback((_) {
       if (widget.contentJson != null) {
         final content = jsonDecode(widget.contentJson!);
-        final systemPrompt = content['system_prompt'] ?? 'You are a helpful language tutor.';
+        final systemPrompt =
+            content['system_prompt'] ?? 'You are a helpful language tutor.';
         final initialMessage = content['initial_message'];
-        ref.read(chatControllerProvider.notifier).initialize(systemPrompt, initialMessage);
+        ref
+            .read(chatControllerProvider.notifier)
+            .initialize(systemPrompt, initialMessage);
       }
     });
   }
@@ -58,7 +65,9 @@ class _RoleplayViewState extends ConsumerState<RoleplayView> {
         _scrollToBottom();
       }
       if (next.error != null) {
-        ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('Error: ${next.error}')));
+        ScaffoldMessenger.of(
+          context,
+        ).showSnackBar(SnackBar(content: Text('Error: ${next.error}')));
       }
     });
 
@@ -110,11 +119,16 @@ class _RoleplayViewState extends ConsumerState<RoleplayView> {
                   decoration: InputDecoration(
                     hintText: l10n.typeResponse,
                     border: const OutlineInputBorder(),
-                    contentPadding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+                    contentPadding: const EdgeInsets.symmetric(
+                      horizontal: 12,
+                      vertical: 8,
+                    ),
                   ),
                   onSubmitted: (text) {
                     if (text.isNotEmpty) {
-                      ref.read(chatControllerProvider.notifier).sendMessage(text);
+                      ref
+                          .read(chatControllerProvider.notifier)
+                          .sendMessage(text);
                       _textController.clear();
                     }
                   },
@@ -135,7 +149,12 @@ class _RoleplayViewState extends ConsumerState<RoleplayView> {
           ),
         ),
         Padding(
-          padding: const EdgeInsets.only(left: 16, right: 16, bottom: 16, top: 8),
+          padding: const EdgeInsets.only(
+            left: 16,
+            right: 16,
+            bottom: 16,
+            top: 8,
+          ),
           child: SizedBox(
             width: double.infinity,
             child: OutlinedButton(

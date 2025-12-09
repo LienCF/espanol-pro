@@ -10,7 +10,11 @@ class ImageQuizView extends ConsumerStatefulWidget {
   final String? contentJson;
   final Function(int score) onComplete;
 
-  const ImageQuizView({super.key, required this.contentJson, required this.onComplete});
+  const ImageQuizView({
+    super.key,
+    required this.contentJson,
+    required this.onComplete,
+  });
 
   @override
   ConsumerState<ImageQuizView> createState() => _ImageQuizViewState();
@@ -43,7 +47,7 @@ class _ImageQuizViewState extends ConsumerState<ImageQuizView> {
     if (_items.isEmpty) return;
     final item = _items[_currentIndex];
     final url = item['question_audio'];
-    
+
     if (url != null) {
       try {
         final resolvedPath = await ref.read(assetServiceProvider).resolve(url);
@@ -95,14 +99,20 @@ class _ImageQuizViewState extends ConsumerState<ImageQuizView> {
     return Column(
       children: [
         const SizedBox(height: 24),
-        Text(l10n.listenAndSelect, style: Theme.of(context).textTheme.headlineSmall),
+        Text(
+          l10n.listenAndSelect,
+          style: Theme.of(context).textTheme.headlineSmall,
+        ),
         const SizedBox(height: 16),
         IconButton.filled(
           icon: const Icon(Icons.volume_up, size: 32),
           onPressed: _playPrompt,
         ),
         const SizedBox(height: 16),
-        Text(getLocalized(context, item['prompt'] ?? ''), style: const TextStyle(fontSize: 18, fontWeight: FontWeight.bold)),
+        Text(
+          getLocalized(context, item['prompt'] ?? ''),
+          style: const TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
+        ),
         const SizedBox(height: 24),
         Expanded(
           child: GridView.builder(
@@ -116,22 +126,25 @@ class _ImageQuizViewState extends ConsumerState<ImageQuizView> {
             itemBuilder: (context, index) {
               final opt = item['options'][index];
               final isCorrect = opt['correct'] == true;
-              
+
               return InkWell(
                 onTap: () => _handleSelection(isCorrect),
                 child: Container(
                   decoration: BoxDecoration(
-                    border: _isAnswered && isCorrect 
-                      ? Border.all(color: Colors.green, width: 4) 
-                      : Border.all(color: Colors.grey.shade300),
+                    border: _isAnswered && isCorrect
+                        ? Border.all(color: Colors.green, width: 4)
+                        : Border.all(color: Colors.grey.shade300),
                     borderRadius: BorderRadius.circular(12),
                   ),
                   child: Column(
                     mainAxisAlignment: MainAxisAlignment.center,
                     children: [
-                      const Icon(Icons.image, size: 48, color: Colors.grey), 
+                      const Icon(Icons.image, size: 48, color: Colors.grey),
                       const SizedBox(height: 8),
-                      Text(getLocalized(context, opt['text']), textAlign: TextAlign.center),
+                      Text(
+                        getLocalized(context, opt['text']),
+                        textAlign: TextAlign.center,
+                      ),
                     ],
                   ),
                 ),
@@ -142,18 +155,24 @@ class _ImageQuizViewState extends ConsumerState<ImageQuizView> {
         if (_feedback != null)
           Padding(
             padding: const EdgeInsets.all(16.0),
-            child: Text(_feedback!, style: TextStyle(
-              fontSize: 20, 
-              color: _feedback == l10n.correct ? Colors.green : Colors.red,
-              fontWeight: FontWeight.bold
-            )),
+            child: Text(
+              _feedback!,
+              style: TextStyle(
+                fontSize: 20,
+                color: _feedback == l10n.correct ? Colors.green : Colors.red,
+                fontWeight: FontWeight.bold,
+              ),
+            ),
           ),
         if (_isAnswered)
           Padding(
             padding: const EdgeInsets.all(16.0),
             child: SizedBox(
               width: double.infinity,
-              child: FilledButton(onPressed: _next, child: Text(l10n.continueBtn)),
+              child: FilledButton(
+                onPressed: _next,
+                child: Text(l10n.continueBtn),
+              ),
             ),
           ),
       ],

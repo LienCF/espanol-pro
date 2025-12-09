@@ -4,6 +4,7 @@
   "logout": "Logout",
   "coursesTab": "Courses",
   "skillsTab": "Skills",
+  "leaderboardTab": "Leaderboard",
   "generalProficiency": "General Proficiency",
   "specializedTracks": "Specialized Tracks (ESP)",
   "lessonsCompleted": "{completed} / {total} lessons completed",
@@ -91,5 +92,11 @@
         "type": "int"
       }
     }
-  }
+  },
+  "rankLabel": "Rank",
+  "xpLabel": "XP",
+  "streakLabel": "Streak",
+  "noLeaderboardData": "No data yet.",
+  "leaderboardTitle": "Leaderboard",
+  "comprehensionCheck": "Comprehension Check"
 }

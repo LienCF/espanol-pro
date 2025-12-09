@@ -62,7 +62,7 @@ class _LessonPlayerScreenState extends ConsumerState<LessonPlayerScreen> {
           NextLessonIntent: CallbackAction<NextLessonIntent>(
             onInvoke: (NextLessonIntent intent) {
               if (lessonAsync.hasValue) {
-                 _markComplete(context); 
+                _markComplete(context);
               }
               return null;
             },
@@ -71,7 +71,9 @@ class _LessonPlayerScreenState extends ConsumerState<LessonPlayerScreen> {
         child: Scaffold(
           appBar: AppBar(
             title: lessonAsync.when(
-              data: (lesson) => Text(getLocalized(context, lesson?.title) ?? l10n.lessonNotFound),
+              data: (lesson) => Text(
+                getLocalized(context, lesson?.title) ?? l10n.lessonNotFound,
+              ),
               loading: () => Text(l10n.loading),
               error: (_, __) => Text(l10n.error),
             ),
@@ -80,14 +82,20 @@ class _LessonPlayerScreenState extends ConsumerState<LessonPlayerScreen> {
             autofocus: true,
             child: lessonAsync.when(
               data: (lesson) {
-                if (lesson == null) return Center(child: Text(l10n.lessonNotFound));
+                if (lesson == null)
+                  return Center(child: Text(l10n.lessonNotFound));
                 if (lesson.contentJson == null) {
-                   return Center(child: CircularProgressIndicator(semanticsLabel: l10n.downloadingContent));
+                  return Center(
+                    child: CircularProgressIndicator(
+                      semanticsLabel: l10n.downloadingContent,
+                    ),
+                  );
                 }
                 return _buildLessonContent(context, lesson, ref);
               },
               loading: () => const Center(child: CircularProgressIndicator()),
-              error: (err, stack) => Center(child: Text(l10n.errorWithMsg(err.toString()))),
+              error: (err, stack) =>
+                  Center(child: Text(l10n.errorWithMsg(err.toString()))),
             ),
           ),
         ),
@@ -95,7 +103,11 @@ class _LessonPlayerScreenState extends ConsumerState<LessonPlayerScreen> {
     );
   }
 
-  Widget _buildLessonContent(BuildContext context, Lesson lesson, WidgetRef ref) {
+  Widget _buildLessonContent(
+    BuildContext context,
+    Lesson lesson,
+    WidgetRef ref,
+  ) {
     final l10n = AppLocalizations.of(context)!;
     switch (lesson.contentType) {
       case 'DIALOGUE':
@@ -115,7 +127,8 @@ class _LessonPlayerScreenState extends ConsumerState<LessonPlayerScreen> {
       case 'QUIZ':
         return QuizView(
           contentJson: lesson.contentJson,
-          onComplete: (score) => _markComplete(context, isQuiz: true, score: score),
+          onComplete: (score) =>
+              _markComplete(context, isQuiz: true, score: score),
         );
       case 'ROLEPLAY':
         return RoleplayView(
@@ -130,12 +143,14 @@ class _LessonPlayerScreenState extends ConsumerState<LessonPlayerScreen> {
       case 'READING':
         return ReadingView(
           contentJson: lesson.contentJson,
-          onComplete: (score) => _markComplete(context, isQuiz: true, score: score),
+          onComplete: (score) =>
+              _markComplete(context, isQuiz: true, score: score),
         );
       case 'IMAGE_QUIZ':
         return ImageQuizView(
           contentJson: lesson.contentJson,
-          onComplete: (score) => _markComplete(context, isQuiz: true, score: score),
+          onComplete: (score) =>
+              _markComplete(context, isQuiz: true, score: score),
         );
       default:
         return Center(child: Text(l10n.unknownLessonType));
@@ -144,13 +159,17 @@ class _LessonPlayerScreenState extends ConsumerState<LessonPlayerScreen> {
 
   void _markComplete(BuildContext context, {bool isQuiz = false, int? score}) {
     final l10n = AppLocalizations.of(context)!;
-    ref.read(courseRepositoryProvider).saveLessonProgress(
+    ref
+        .read(courseRepositoryProvider)
+        .saveLessonProgress(
           lessonId: widget.lessonId,
           courseId: widget.courseId,
           isCorrect: isQuiz ? (score != null && score > 0) : true,
           interactionType: isQuiz ? 'QUIZ' : 'COMPLETION',
         );
-    ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(l10n.lessonCompleted)));
+    ScaffoldMessenger.of(
+      context,
+    ).showSnackBar(SnackBar(content: Text(l10n.lessonCompleted)));
     Navigator.of(context).pop();
   }
 }

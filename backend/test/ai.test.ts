@@ -119,63 +119,48 @@ describe('AI Speech Evaluation API', () => {
   })
 })
 
-describe('AI Chat API', () => {
-  it('should inject grammar instruction into system prompt', async () => {
-    const mockAI = {
-      run: vi.fn().mockResolvedValue({ response: 'Hola! [CORRECTION: Hola - Hello]' })
-    }
+// Note: Detailed stateful chat tests are in test/chat_stateful.test.ts
+// These tests check basic payload handling for legacy/simple cases if needed, 
+// or we can remove them if fully superseded. 
+// Updating them to match new API signature for completeness.
 
-    const messages = [
-      { role: 'system', content: 'You are a Spanish tutor.' },
-      { role: 'user', content: 'Hola' }
-    ]
-
-    const req = new Request('http://localhost/api/ai/chat', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ messages })
-    })
-
-    const res = await app.request(req, undefined, { AI: mockAI, BUCKET: {} })
-    const data = await res.json()
-
-    expect(res.status).toBe(200)
-    expect(data.response).toBe('Hola! [CORRECTION: Hola - Hello]')
-
-    // Verify AI was called with modified system prompt
-    expect(mockAI.run).toHaveBeenCalledWith('@cf/meta/llama-3-8b-instruct', expect.objectContaining({
-      messages: expect.arrayContaining([
-        expect.objectContaining({
-          role: 'system',
-          content: expect.stringContaining('IMPORTANT: If the user makes a grammatical error')
-        })
-      ])
-    }))
-  })
-
-  it('should add default system prompt if missing', async () => {
+describe('AI Chat API (Basic)', () => {
+  it('should call AI with formatted system prompt', async () => {
     const mockAI = {
       run: vi.fn().mockResolvedValue({ response: 'Hola' })
     }
-
-    const messages = [
-      { role: 'user', content: 'Hola' }
-    ]
+    
+    // Mock D1 to prevent errors during history fetch
+    const mockD1 = {
+      prepare: vi.fn().mockReturnValue({
+        bind: vi.fn().mockReturnThis(),
+        first: vi.fn().mockResolvedValue({ id: 'test_user' }), // Auth
+        all: vi.fn().mockResolvedValue({ results: [] }), // History
+        run: vi.fn().mockResolvedValue({ success: true }) // Insert
+      })
+    }
 
     const req = new Request('http://localhost/api/ai/chat', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ messages })
+      body: JSON.stringify({ 
+        message: 'Hola', 
+        userId: 'test_user' 
+      })
     })
 
-    await app.request(req, undefined, { AI: mockAI, BUCKET: {} })
+    const res = await app.request(req, undefined, { AI: mockAI, DB: mockD1 })
+    const data = await res.json()
 
-    // Verify AI was called with a system prompt added
+    expect(res.status).toBe(200)
+    expect(data.response).toBe('Hola')
+
+    // Verify System Prompt injection
     expect(mockAI.run).toHaveBeenCalledWith('@cf/meta/llama-3-8b-instruct', expect.objectContaining({
       messages: expect.arrayContaining([
         expect.objectContaining({
           role: 'system',
-          content: expect.stringContaining('You are a helpful Spanish tutor.')
+          content: expect.stringContaining('You are Carlos')
         })
       ])
     }))

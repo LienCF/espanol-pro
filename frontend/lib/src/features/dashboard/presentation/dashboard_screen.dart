@@ -3,11 +3,14 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import '../../../../l10n/generated/app_localizations.dart';
 import '../../../core/auth/auth_repository.dart';
+import '../../../core/auth/app_user.dart';
 import '../../../core/utils/localization_helper.dart';
 import '../../course_learning/data/course_repository.dart';
 import '../../course_learning/data/skills_repository.dart';
 import '../../course_learning/domain/course.dart';
 import '../../course_learning/domain/skill.dart';
+
+import '../../gamification/presentation/leaderboard_screen.dart';
 
 class DashboardScreen extends ConsumerStatefulWidget {
   const DashboardScreen({super.key});
@@ -22,9 +25,7 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
   @override
   void initState() {
     super.initState();
-    // Sync data from backend on init
     ref.read(courseRepositoryProvider).syncCourses();
-    // Retry any failed offline requests
     ref.read(courseRepositoryProvider).processPendingRequests();
   }
 
@@ -34,33 +35,17 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
     final isPremium = user?.isPremium ?? false;
     final l10n = AppLocalizations.of(context)!;
 
+    Widget body;
+    if (_selectedIndex == 0) {
+      body = _buildCoursesTab(isPremium, l10n, user);
+    } else if (_selectedIndex == 1) {
+      body = _buildSkillsTab(l10n);
+    } else {
+      body = const LeaderboardScreen();
+    }
+
     return Scaffold(
-      appBar: AppBar(
-        title: Text(l10n.appTitle),
-        centerTitle: false,
-        actions: [
-          if (!isPremium)
-            TextButton.icon(
-              onPressed: () => context.push('/paywall'),
-              icon: const Icon(Icons.diamond, color: Colors.orange),
-              label: Text(l10n.goPro, style: const TextStyle(color: Colors.orange)),
-            ),
-          PopupMenuButton(
-            icon: const Icon(Icons.person_outline),
-            itemBuilder: (context) => [
-              PopupMenuItem(
-                child: Text(l10n.logout),
-                onTap: () {
-                  ref.read(authRepositoryProvider).logout();
-                },
-              ),
-            ],
-          ),
-        ],
-      ),
-      body: _selectedIndex == 0 
-          ? _buildCoursesTab(isPremium)
-          : _buildSkillsTab(),
+      body: body,
       bottomNavigationBar: NavigationBar(
         selectedIndex: _selectedIndex,
         onDestinationSelected: (index) {
@@ -79,145 +64,255 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
             selectedIcon: const Icon(Icons.insights),
             label: l10n.skillsTab,
           ),
+          NavigationDestination(
+            icon: const Icon(Icons.emoji_events_outlined),
+            selectedIcon: const Icon(Icons.emoji_events),
+            label: l10n.leaderboardTab,
+          ),
         ],
       ),
     );
   }
 
-  Widget _buildCoursesTab(bool isPremium) {
+  Widget _buildCoursesTab(
+    bool isPremium,
+    AppLocalizations l10n,
+    AppUser? user,
+  ) {
     final coursesAsync = ref.watch(courseListProvider);
-    
+
     return coursesAsync.when(
-      data: (courses) => _buildCourseList(context, courses, isPremium),
+      data: (courses) =>
+          _buildCourseList(context, courses, isPremium, l10n, user),
       loading: () => const Center(child: CircularProgressIndicator()),
-      error: (err, stack) => Center(child: Text(AppLocalizations.of(context)!.errorWithMsg(err.toString()))),
+      error: (err, stack) =>
+          Center(child: Text(l10n.errorWithMsg(err.toString()))),
     );
   }
 
-  Widget _buildSkillsTab() {
+  Widget _buildSkillsTab(AppLocalizations l10n) {
     final skillsAsync = ref.watch(userSkillsProvider);
-    final l10n = AppLocalizations.of(context)!;
 
-    return skillsAsync.when(
-      data: (skills) {
-        if (skills.isEmpty) {
-          return Center(
-            child: Column(
-              mainAxisAlignment: MainAxisAlignment.center,
-              children: [
-                const Icon(Icons.psychology_outlined, size: 64, color: Colors.grey),
-                const SizedBox(height: 16),
-                Text(l10n.noSkillsData, style: const TextStyle(color: Colors.grey)),
-                Text(l10n.trackMasteryHint, style: const TextStyle(color: Colors.grey)),
+    return CustomScrollView(
+      slivers: [
+        SliverAppBar.large(title: Text(l10n.skillsTab), centerTitle: false),
+        skillsAsync.when(
+          data: (skills) {
+            if (skills.isEmpty) {
+              return SliverFillRemaining(
+                child: Center(
+                  child: Column(
+                    mainAxisAlignment: MainAxisAlignment.center,
+                    children: [
+                      const Icon(
+                        Icons.psychology_outlined,
+                        size: 64,
+                        color: Colors.grey,
+                      ),
+                      const SizedBox(height: 16),
+                      Text(
+                        l10n.noSkillsData,
+                        style: const TextStyle(color: Colors.grey),
+                      ),
+                      Text(
+                        l10n.trackMasteryHint,
+                        style: const TextStyle(color: Colors.grey),
+                      ),
+                    ],
+                  ),
+                ),
+              );
+            }
+            return SliverPadding(
+              padding: const EdgeInsets.all(16),
+              sliver: SliverList(
+                delegate: SliverChildBuilderDelegate((context, index) {
+                  final skill = skills[index];
+                  return SkillCard(skill: skill);
+                }, childCount: skills.length),
+              ),
+            );
+          },
+          loading: () => const SliverFillRemaining(
+            child: Center(child: CircularProgressIndicator()),
+          ),
+          error: (err, stack) => SliverFillRemaining(
+            child: Center(child: Text(l10n.errorWithMsg(err.toString()))),
+          ),
+        ),
+      ],
+    );
+  }
+
+  Widget _buildCourseList(
+    BuildContext context,
+    List<Course> courses,
+    bool isPremium,
+    AppLocalizations l10n,
+    AppUser? user,
+  ) {
+    final generalTrack = courses
+        .where((c) => c.trackType == 'GENERAL')
+        .toList();
+    final specializedTrack = courses
+        .where((c) => c.trackType == 'SPECIALIZED')
+        .toList();
+
+    return CustomScrollView(
+      slivers: [
+        SliverAppBar.large(
+          title: Text(l10n.appTitle),
+          centerTitle: false,
+          actions: [
+            Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 8.0),
+              child: Row(
+                children: [
+                  const Icon(
+                    Icons.local_fire_department,
+                    color: Colors.orangeAccent,
+                    size: 20,
+                  ),
+                  const SizedBox(width: 4),
+                  Text(
+                    '${user?.currentStreak ?? 0}',
+                    style: const TextStyle(fontWeight: FontWeight.bold),
+                  ),
+                  const SizedBox(width: 12),
+                  const Icon(Icons.star, color: Colors.amber, size: 20),
+                  const SizedBox(width: 4),
+                  Text(
+                    '${user?.totalXp ?? 0}',
+                    style: const TextStyle(fontWeight: FontWeight.bold),
+                  ),
+                ],
+              ),
+            ),
+            if (!isPremium)
+              Padding(
+                padding: const EdgeInsets.only(right: 8.0),
+                child: TextButton.icon(
+                  onPressed: () => context.push('/paywall'),
+                  icon: const Icon(Icons.diamond, color: Colors.orange),
+                  label: Text(
+                    l10n.goPro,
+                    style: const TextStyle(
+                      color: Colors.orange,
+                      fontWeight: FontWeight.bold,
+                    ),
+                  ),
+                  style: TextButton.styleFrom(
+                    backgroundColor: Colors.orange.withOpacity(0.1),
+                  ),
+                ),
+              ),
+            PopupMenuButton(
+              icon: const Icon(Icons.person_outline),
+              itemBuilder: (context) => [
+                PopupMenuItem(
+                  child: Text(l10n.logout),
+                  onTap: () {
+                    ref.read(authRepositoryProvider).logout();
+                  },
+                ),
               ],
             ),
-          );
+          ],
+        ),
+        if (courses.isEmpty)
+          SliverFillRemaining(
+            child: Center(child: Text(l10n.noCoursesAvailable)),
+          ),
+
+        if (generalTrack.isNotEmpty) ...[
+          SliverPadding(
+            padding: const EdgeInsets.fromLTRB(16, 16, 16, 8),
+            sliver: SliverToBoxAdapter(
+              child: _buildSectionHeader(
+                context,
+                l10n.generalProficiency,
+                Icons.school,
+              ),
+            ),
+          ),
+          SliverPadding(
+            padding: const EdgeInsets.symmetric(horizontal: 16),
+            sliver: _buildResponsiveGrid(generalTrack, false),
+          ),
+        ],
+
+        if (specializedTrack.isNotEmpty) ...[
+          SliverPadding(
+            padding: const EdgeInsets.fromLTRB(16, 32, 16, 8),
+            sliver: SliverToBoxAdapter(
+              child: _buildSectionHeader(
+                context,
+                l10n.specializedTracks,
+                Icons.work,
+              ),
+            ),
+          ),
+          SliverPadding(
+            padding: const EdgeInsets.symmetric(horizontal: 16),
+            sliver: _buildResponsiveGrid(specializedTrack, !isPremium),
+          ),
+        ],
+
+        const SliverPadding(padding: EdgeInsets.only(bottom: 32)),
+      ],
+    );
+  }
+
+  Widget _buildResponsiveGrid(List<Course> courses, bool isLocked) {
+    return SliverLayoutBuilder(
+      builder: (context, constraints) {
+        final width = constraints.crossAxisExtent;
+        int crossAxisCount = 1;
+        double childAspectRatio = 1.5; // Default for mobile
+
+        if (width > 1200) {
+          crossAxisCount = 3;
+          childAspectRatio = 1.4;
+        } else if (width > 700) {
+          crossAxisCount = 2;
+          childAspectRatio = 1.6;
+        } else if (width > 500) {
+          crossAxisCount = 1; // Tablet portrait or large phone
+          childAspectRatio = 2.5; // Wide card
         }
-        return ListView.builder(
-          padding: const EdgeInsets.all(16),
-          itemCount: skills.length,
-          itemBuilder: (context, index) {
-            final skill = skills[index];
-            return SkillCard(skill: skill);
-          },
+
+        return SliverGrid(
+          gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
+            crossAxisCount: crossAxisCount,
+            mainAxisSpacing: 16,
+            crossAxisSpacing: 16,
+            childAspectRatio: childAspectRatio,
+          ),
+          delegate: SliverChildBuilderDelegate(
+            (context, index) =>
+                CourseCard(course: courses[index], isLocked: isLocked),
+            childCount: courses.length,
+          ),
         );
       },
-      loading: () => const Center(child: CircularProgressIndicator()),
-      error: (err, stack) => Center(child: Text(l10n.errorWithMsg(err.toString()))),
     );
   }
 
-  Widget _buildCourseList(BuildContext context, List<Course> courses, bool isPremium) {
-    final l10n = AppLocalizations.of(context)!;
-    if (courses.isEmpty) {
-      return Center(child: Text(l10n.noCoursesAvailable));
-    }
-    
-    // Split courses by track
-    final generalTrack = courses.where((c) => c.trackType == 'GENERAL').toList();
-    final specializedTrack = courses.where((c) => c.trackType == 'SPECIALIZED').toList();
-
-    return LayoutBuilder(
-      builder: (context, constraints) {
-        if (constraints.maxWidth > 600) {
-          // Desktop / Tablet Grid Layout
-          return Padding(
-            padding: const EdgeInsets.all(24),
-            child: CustomScrollView(
-              slivers: [
-                if (generalTrack.isNotEmpty) ...[
-                  SliverToBoxAdapter(child: Padding(
-                    padding: const EdgeInsets.only(bottom: 16.0),
-                    child: _buildSectionHeader(context, l10n.generalProficiency, Icons.school),
-                  )),
-                  SliverGrid(
-                    gridDelegate: const SliverGridDelegateWithMaxCrossAxisExtent(
-                      maxCrossAxisExtent: 400,
-                      mainAxisSpacing: 16,
-                      crossAxisSpacing: 16,
-                      childAspectRatio: 1.8,
-                    ),
-                    delegate: SliverChildBuilderDelegate(
-                      (context, index) => CourseCard(course: generalTrack[index], isLocked: false),
-                      childCount: generalTrack.length,
-                    ),
-                  ),
-                  const SliverToBoxAdapter(child: SizedBox(height: 32)),
-                ],
-                if (specializedTrack.isNotEmpty) ...[
-                  SliverToBoxAdapter(child: Padding(
-                    padding: const EdgeInsets.only(bottom: 16.0),
-                    child: _buildSectionHeader(context, l10n.specializedTracks, Icons.work),
-                  )),
-                  SliverGrid(
-                    gridDelegate: const SliverGridDelegateWithMaxCrossAxisExtent(
-                      maxCrossAxisExtent: 400,
-                      mainAxisSpacing: 16,
-                      crossAxisSpacing: 16,
-                      childAspectRatio: 1.8,
-                    ),
-                    delegate: SliverChildBuilderDelegate(
-                      (context, index) => CourseCard(course: specializedTrack[index], isLocked: !isPremium),
-                      childCount: specializedTrack.length,
-                    ),
-                  ),
-                ],
-              ],
-            ),
-          );
-        } else {
-          // Mobile List Layout
-          return ListView(
-            padding: const EdgeInsets.all(16),
-            children: [
-              if (generalTrack.isNotEmpty) ...[
-                _buildSectionHeader(context, l10n.generalProficiency, Icons.school),
-                const SizedBox(height: 8),
-                ...generalTrack.map((c) => CourseCard(course: c, isLocked: false)), // General is always free for MVP
-                const SizedBox(height: 24),
-              ],
-              if (specializedTrack.isNotEmpty) ...[
-                _buildSectionHeader(context, l10n.specializedTracks, Icons.work),
-                const SizedBox(height: 8),
-                ...specializedTrack.map((c) => CourseCard(course: c, isLocked: !isPremium)),
-              ],
-            ],
-          );
-        }
-      },
-    );
-  }
-
-  Widget _buildSectionHeader(BuildContext context, String title, IconData icon) {
+  Widget _buildSectionHeader(
+    BuildContext context,
+    String title,
+    IconData icon,
+  ) {
     return Row(
       children: [
-        Icon(icon, color: Theme.of(context).colorScheme.primary),
-        const SizedBox(width: 8),
+        Icon(icon, color: Theme.of(context).colorScheme.primary, size: 28),
+        const SizedBox(width: 12),
         Text(
           title,
-          style: Theme.of(context).textTheme.titleLarge?.copyWith(
-                fontWeight: FontWeight.bold,
-              ),
+          style: Theme.of(context).textTheme.headlineSmall?.copyWith(
+            fontWeight: FontWeight.bold,
+            color: Theme.of(context).colorScheme.onSurface,
+          ),
         ),
       ],
     );
@@ -244,8 +339,10 @@ class SkillCard extends StatelessWidget {
     }
 
     return Card(
-      elevation: 2,
+      elevation: 0,
+      color: colorScheme.surfaceContainer,
       margin: const EdgeInsets.only(bottom: 12),
+      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
       child: Padding(
         padding: const EdgeInsets.all(16.0),
         child: Row(
@@ -256,35 +353,59 @@ class SkillCard extends StatelessWidget {
               child: Stack(
                 fit: StackFit.expand,
                 children: [
-                  CircularProgressIndicator(
-                    value: skill.masteryLevel,
-                    strokeWidth: 6,
-                    backgroundColor: colorScheme.surfaceContainerHighest,
-                    color: progressColor,
+                  TweenAnimationBuilder<double>(
+                    tween: Tween<double>(begin: 0, end: skill.masteryLevel),
+                    duration: const Duration(milliseconds: 1500),
+                    curve: Curves.easeOutQuart,
+                    builder: (context, value, _) {
+                      return CircularProgressIndicator(
+                        value: value,
+                        strokeWidth: 8,
+                        backgroundColor: colorScheme.surfaceContainerHigh,
+                        color: progressColor,
+                        strokeCap: StrokeCap.round,
+                      );
+                    },
                   ),
                   Center(
-                    child: Text(
-                      '$masteryPercent%',
-                      style: const TextStyle(fontWeight: FontWeight.bold),
+                    child: TweenAnimationBuilder<int>(
+                      tween: IntTween(begin: 0, end: masteryPercent),
+                      duration: const Duration(milliseconds: 1500),
+                      curve: Curves.easeOutQuart,
+                      builder: (context, value, _) {
+                        return Text(
+                          '$value%',
+                          style: const TextStyle(
+                            fontWeight: FontWeight.bold,
+                            fontSize: 14,
+                          ),
+                        );
+                      },
                     ),
                   ),
                 ],
               ),
             ),
-            const SizedBox(width: 16),
+            const SizedBox(width: 20),
             Expanded(
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
                   Text(
-                    skill.name,
-                    style: Theme.of(context).textTheme.titleMedium?.copyWith(fontWeight: FontWeight.bold),
-                  ),
-                  if (skill.description != null)
-                    Text(
-                      skill.description!,
-                      style: Theme.of(context).textTheme.bodySmall?.copyWith(color: Colors.grey[600]),
+                    getLocalized(context, skill.name),
+                    style: Theme.of(context).textTheme.titleMedium?.copyWith(
+                      fontWeight: FontWeight.w600,
                     ),
+                  ),
+                  if (skill.description != null) ...[
+                    const SizedBox(height: 4),
+                    Text(
+                      getLocalized(context, skill.description),
+                      style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+                        color: colorScheme.onSurfaceVariant,
+                      ),
+                    ),
+                  ],
                 ],
               ),
             ),
@@ -306,11 +427,10 @@ class CourseCard extends StatelessWidget {
     final isSpecialized = course.trackType == 'SPECIALIZED';
     final colorScheme = Theme.of(context).colorScheme;
     final l10n = AppLocalizations.of(context)!;
-    
+
     return Card(
-      elevation: 4,
-      shadowColor: Colors.black.withOpacity(0.2),
-      margin: const EdgeInsets.only(bottom: 16),
+      elevation: 2, // Softer shadow
+      margin: EdgeInsets.zero, // Grid handles spacing
       clipBehavior: Clip.antiAlias,
       shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
       child: InkWell(
@@ -325,25 +445,27 @@ class CourseCard extends StatelessWidget {
           children: [
             Row(
               children: [
-                // Thumbnail
-                Hero(
-                  tag: 'course_thumb_${course.id}',
-                  child: Container(
-                    width: 100,
-                    height: 110,
-                    decoration: BoxDecoration(
-                      gradient: LinearGradient(
-                        begin: Alignment.topLeft,
-                        end: Alignment.bottomRight,
-                        colors: isSpecialized 
-                            ? [Colors.orange.shade300, Colors.deepOrange.shade400]
-                            : [Colors.blue.shade300, Colors.indigo.shade400],
-                      ),
+                // Modern Thumbnail
+                Container(
+                  width: 120,
+                  height: double.infinity,
+                  decoration: BoxDecoration(
+                    gradient: LinearGradient(
+                      begin: Alignment.topLeft,
+                      end: Alignment.bottomRight,
+                      colors: isSpecialized
+                          ? [Colors.orange.shade400, Colors.deepOrange.shade600]
+                          : [Colors.blue.shade400, Colors.indigo.shade600],
                     ),
-                    child: Icon(
-                      isSpecialized ? Icons.engineering : Icons.language,
-                      size: 40,
-                      color: Colors.white,
+                  ),
+                  child: Center(
+                    child: Hero(
+                      tag: 'course_icon_${course.id}',
+                      child: Icon(
+                        isSpecialized ? Icons.engineering : Icons.language,
+                        size: 48,
+                        color: Colors.white.withOpacity(0.9),
+                      ),
                     ),
                   ),
                 ),
@@ -352,6 +474,7 @@ class CourseCard extends StatelessWidget {
                     padding: const EdgeInsets.all(16.0),
                     child: Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
+                      mainAxisAlignment: MainAxisAlignment.center,
                       children: [
                         Row(
                           mainAxisAlignment: MainAxisAlignment.spaceBetween,
@@ -359,66 +482,94 @@ class CourseCard extends StatelessWidget {
                             Flexible(
                               child: Text(
                                 getLocalized(context, course.title),
-                                style: Theme.of(context).textTheme.titleMedium?.copyWith(
+                                style: Theme.of(context).textTheme.titleMedium
+                                    ?.copyWith(
                                       fontWeight: FontWeight.bold,
+                                      height: 1.2,
                                     ),
-                                maxLines: 1,
+                                maxLines: 2,
                                 overflow: TextOverflow.ellipsis,
                               ),
                             ),
                             if (isLocked)
-                              const Icon(Icons.lock, size: 16, color: Colors.grey)
-                            else
-                              Container(
-                                padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
-                                decoration: BoxDecoration(
-                                  color: isSpecialized 
-                                      ? colorScheme.tertiaryContainer 
-                                      : colorScheme.secondaryContainer,
-                                  borderRadius: BorderRadius.circular(8),
-                                ),
-                                child: Text(
-                                  course.level,
-                                  style: Theme.of(context).textTheme.labelSmall?.copyWith(
-                                        fontWeight: FontWeight.bold,
-                                        color: isSpecialized 
-                                            ? colorScheme.onTertiaryContainer 
-                                            : colorScheme.onSecondaryContainer,
-                                      ),
+                              const Padding(
+                                padding: EdgeInsets.only(left: 8.0),
+                                child: Icon(
+                                  Icons.lock_outline,
+                                  size: 20,
+                                  color: Colors.grey,
                                 ),
                               ),
                           ],
                         ),
                         const SizedBox(height: 8),
-                        Text(
-                          getLocalized(context, course.description),
-                          style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                            color: colorScheme.onSurfaceVariant,
+                        Container(
+                          padding: const EdgeInsets.symmetric(
+                            horizontal: 8,
+                            vertical: 2,
                           ),
-                          maxLines: 2,
-                          overflow: TextOverflow.ellipsis,
+                          decoration: BoxDecoration(
+                            color: isSpecialized
+                                ? colorScheme.tertiaryContainer
+                                : colorScheme.secondaryContainer,
+                            borderRadius: BorderRadius.circular(6),
+                          ),
+                          child: Text(
+                            course.level,
+                            style: Theme.of(context).textTheme.labelSmall
+                                ?.copyWith(
+                                  fontWeight: FontWeight.bold,
+                                  color: isSpecialized
+                                      ? colorScheme.onTertiaryContainer
+                                      : colorScheme.onSecondaryContainer,
+                                ),
+                          ),
                         ),
+                        const Spacer(),
                         if (course.completedLessonsCount > 0) ...[
                           const SizedBox(height: 12),
                           ClipRRect(
                             borderRadius: BorderRadius.circular(4),
-                            child: LinearProgressIndicator(
-                              minHeight: 6,
-                              value: course.totalLessonsCount > 0 
-                                  ? course.completedLessonsCount / course.totalLessonsCount 
-                                  : 0.0,
-                              backgroundColor: colorScheme.surfaceContainerHighest,
-                              color: isSpecialized ? Colors.orange : colorScheme.primary,
+                            child: TweenAnimationBuilder<double>(
+                              tween: Tween<double>(
+                                begin: 0,
+                                end: course.totalLessonsCount > 0
+                                    ? course.completedLessonsCount /
+                                          course.totalLessonsCount
+                                    : 0.0,
+                              ),
+                              duration: const Duration(milliseconds: 1000),
+                              curve: Curves.easeOutCubic,
+                              builder: (context, value, _) {
+                                return LinearProgressIndicator(
+                                  minHeight: 6,
+                                  value: value,
+                                  backgroundColor:
+                                      colorScheme.surfaceContainerHighest,
+                                  color: isSpecialized
+                                      ? Colors.orange
+                                      : colorScheme.primary,
+                                );
+                              },
                             ),
                           ),
-                          const SizedBox(height: 4),
+                          const SizedBox(height: 6),
                           Text(
-                            l10n.lessonsCompleted(course.completedLessonsCount, course.totalLessonsCount),
-                            style: Theme.of(context).textTheme.labelSmall?.copyWith(
-                              color: colorScheme.onSurfaceVariant
+                            l10n.lessonsCompleted(
+                              course.completedLessonsCount,
+                              course.totalLessonsCount,
                             ),
+                            style: Theme.of(context).textTheme.labelSmall
+                                ?.copyWith(color: colorScheme.onSurfaceVariant),
                           ),
-                        ]
+                        ] else
+                          Text(
+                            getLocalized(context, course.description),
+                            style: Theme.of(context).textTheme.bodySmall
+                                ?.copyWith(color: colorScheme.onSurfaceVariant),
+                            maxLines: 2,
+                            overflow: TextOverflow.ellipsis,
+                          ),
                       ],
                     ),
                   ),
@@ -428,7 +579,10 @@ class CourseCard extends StatelessWidget {
             if (isLocked)
               Positioned.fill(
                 child: Container(
-                  color: Colors.white.withOpacity(0.5), // Fade effect
+                  color: Colors.white.withOpacity(0.6),
+                  child: const Center(
+                    child: Icon(Icons.lock, size: 48, color: Colors.black26),
+                  ),
                 ),
               ),
           ],

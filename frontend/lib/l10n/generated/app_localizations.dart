@@ -128,6 +128,12 @@ abstract class AppLocalizations {
   /// **'Skills'**
   String get skillsTab;
 
+  /// No description provided for @leaderboardTab.
+  ///
+  /// In en, this message translates to:
+  /// **'Leaderboard'**
+  String get leaderboardTab;
+
   /// No description provided for @generalProficiency.
   ///
   /// In en, this message translates to:
@@ -391,6 +397,42 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Question {current} of {total}'**
   String questionProgress(int current, int total);
+
+  /// No description provided for @rankLabel.
+  ///
+  /// In en, this message translates to:
+  /// **'Rank'**
+  String get rankLabel;
+
+  /// No description provided for @xpLabel.
+  ///
+  /// In en, this message translates to:
+  /// **'XP'**
+  String get xpLabel;
+
+  /// No description provided for @streakLabel.
+  ///
+  /// In en, this message translates to:
+  /// **'Streak'**
+  String get streakLabel;
+
+  /// No description provided for @noLeaderboardData.
+  ///
+  /// In en, this message translates to:
+  /// **'No data yet.'**
+  String get noLeaderboardData;
+
+  /// No description provided for @leaderboardTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Leaderboard'**
+  String get leaderboardTitle;
+
+  /// No description provided for @comprehensionCheck.
+  ///
+  /// In en, this message translates to:
+  /// **'Comprehension Check'**
+  String get comprehensionCheck;
 }
 
 class _AppLocalizationsDelegate

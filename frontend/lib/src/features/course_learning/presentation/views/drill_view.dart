@@ -1,9 +1,8 @@
 import 'dart:convert';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:just_audio/just_audio.dart';
 import '../../../../../../l10n/generated/app_localizations.dart';
-import '../../../../core/services/asset_service.dart';
+import '../../../../core/services/audio_player_service.dart';
 import '../../../../core/utils/localization_helper.dart';
 import '../recording_widget.dart';
 
@@ -13,8 +12,8 @@ class DrillView extends ConsumerStatefulWidget {
   final String lessonId;
 
   const DrillView({
-    super.key, 
-    required this.contentJson, 
+    super.key,
+    required this.contentJson,
     required this.onComplete,
     required this.lessonId,
   });
@@ -24,27 +23,14 @@ class DrillView extends ConsumerStatefulWidget {
 }
 
 class _DrillViewState extends ConsumerState<DrillView> {
-  final AudioPlayer _player = AudioPlayer();
   int? _playingIndex;
-
-  @override
-  void dispose() {
-    _player.dispose();
-    super.dispose();
-  }
 
   Future<void> _playAudio(int index, String url) async {
     try {
       setState(() => _playingIndex = index);
-      
-      final resolvedPath = await ref.read(assetServiceProvider).resolve(url);
-      if (resolvedPath.startsWith('http')) {
-        await _player.setUrl(resolvedPath);
-      } else {
-        await _player.setFilePath(resolvedPath);
-      }
-      
-      await _player.play();
+
+      await ref.read(audioPlayerServiceProvider).play(url);
+
       if (mounted) setState(() => _playingIndex = null);
     } catch (e) {
       print('Audio error: $e');
@@ -55,8 +41,9 @@ class _DrillViewState extends ConsumerState<DrillView> {
   @override
   Widget build(BuildContext context) {
     final l10n = AppLocalizations.of(context)!;
-    if (widget.contentJson == null) return Center(child: Text(l10n.noContentAvailable));
-    
+    if (widget.contentJson == null)
+      return Center(child: Text(l10n.noContentAvailable));
+
     List<Map<String, dynamic>> items = [];
     try {
       final raw = jsonDecode(widget.contentJson!);
@@ -78,7 +65,7 @@ class _DrillViewState extends ConsumerState<DrillView> {
           child: SelectableText(
             'Debug Info:\n'
             'RuntimeType: ${jsonDecode(widget.contentJson!).runtimeType}\n'
-            'Content: ${widget.contentJson}'
+            'Content: ${widget.contentJson}',
           ),
         ),
       );
@@ -108,10 +95,17 @@ class _DrillViewState extends ConsumerState<DrillView> {
                     children: [
                       Row(
                         children: [
-                          Expanded(child: Text('${l10n.drillBase}: ${item['base']}', style: Theme.of(context).textTheme.bodyLarge)),
+                          Expanded(
+                            child: Text(
+                              '${l10n.drillBase}: ${item['base']}',
+                              style: Theme.of(context).textTheme.bodyLarge,
+                            ),
+                          ),
                           if (hasAudio)
                             IconButton(
-                              icon: Icon(isPlaying ? Icons.stop_circle : Icons.volume_up),
+                              icon: Icon(
+                                isPlaying ? Icons.stop_circle : Icons.volume_up,
+                              ),
                               color: Theme.of(context).colorScheme.primary,
                               onPressed: () => _playAudio(index, item['audio']),
                             ),
@@ -120,23 +114,43 @@ class _DrillViewState extends ConsumerState<DrillView> {
                       const SizedBox(height: 8),
                       Row(
                         children: [
-                          Icon(Icons.arrow_forward, size: 16, color: Theme.of(context).colorScheme.secondary),
+                          Icon(
+                            Icons.arrow_forward,
+                            size: 16,
+                            color: Theme.of(context).colorScheme.secondary,
+                          ),
                           const SizedBox(width: 8),
-                          Text('${l10n.drillSubstitute}: ${item['substitution']}', style: const TextStyle(fontWeight: FontWeight.bold)),
+                          Text(
+                            '${l10n.drillSubstitute}: ${item['substitution']}',
+                            style: const TextStyle(fontWeight: FontWeight.bold),
+                          ),
                         ],
                       ),
                       const SizedBox(height: 12),
                       Container(
                         padding: const EdgeInsets.all(8),
                         decoration: BoxDecoration(
-                          color: Theme.of(context).colorScheme.surfaceContainerHighest,
+                          color: Theme.of(
+                            context,
+                          ).colorScheme.surfaceContainerHighest,
                           borderRadius: BorderRadius.circular(8),
                         ),
                         child: Row(
                           children: [
-                            const Icon(Icons.check_circle_outline, size: 16, color: Colors.green),
+                            const Icon(
+                              Icons.check_circle_outline,
+                              size: 16,
+                              color: Colors.green,
+                            ),
                             const SizedBox(width: 8),
-                            Expanded(child: Text(localizedResult, style: const TextStyle(fontStyle: FontStyle.italic))),
+                            Expanded(
+                              child: Text(
+                                localizedResult,
+                                style: const TextStyle(
+                                  fontStyle: FontStyle.italic,
+                                ),
+                              ),
+                            ),
                           ],
                         ),
                       ),

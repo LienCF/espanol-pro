@@ -16,12 +16,16 @@ class DownloadManager {
 
   DownloadManager(this._dio, this._db);
 
-  Future<void> downloadAsset(String url, {Function(int, int)? onProgress}) async {
+  Future<void> downloadAsset(
+    String url, {
+    Function(int, int)? onProgress,
+  }) async {
     if (!url.startsWith('http')) return;
 
     // Check if already downloaded
-    final existing = await (_db.select(_db.offlineAssetsTable)..where((t) => t.url.equals(url)))
-        .getSingleOrNull();
+    final existing = await (_db.select(
+      _db.offlineAssetsTable,
+    )..where((t) => t.url.equals(url))).getSingleOrNull();
     if (existing != null && await File(existing.localPath).exists()) {
       return;
     }
@@ -30,32 +34,30 @@ class DownloadManager {
       final dir = await getApplicationDocumentsDirectory();
       // Create a safe filename from URL
       final filename = p.basename(Uri.parse(url).path);
-      final safeFilename = '${filename.hashCode}_$filename'; 
+      final safeFilename = '${filename.hashCode}_$filename';
       final savePath = p.join(dir.path, 'offline_assets', safeFilename);
 
       // Ensure directory exists
       await Directory(p.dirname(savePath)).create(recursive: true);
 
       // Download
-      await _dio.download(
-        url, 
-        savePath,
-        onReceiveProgress: onProgress
-      );
+      await _dio.download(url, savePath, onReceiveProgress: onProgress);
 
       // Save to DB
       final file = File(savePath);
       final size = await file.length();
 
-      await _db.into(_db.offlineAssetsTable).insert(
-        OfflineAssetsTableCompanion.insert(
-          url: url,
-          localPath: savePath,
-          fileSize: Value(size),
-          downloadedAt: Value(DateTime.now()),
-        ),
-        mode: InsertMode.insertOrReplace,
-      );
+      await _db
+          .into(_db.offlineAssetsTable)
+          .insert(
+            OfflineAssetsTableCompanion.insert(
+              url: url,
+              localPath: savePath,
+              fileSize: Value(size),
+              downloadedAt: Value(DateTime.now()),
+            ),
+            mode: InsertMode.insertOrReplace,
+          );
     } catch (e) {
       print('Download failed for $url: $e');
       rethrow;
@@ -63,15 +65,18 @@ class DownloadManager {
   }
 
   Future<void> deleteAsset(String url) async {
-    final asset = await (_db.select(_db.offlineAssetsTable)..where((t) => t.url.equals(url)))
-        .getSingleOrNull();
-    
+    final asset = await (_db.select(
+      _db.offlineAssetsTable,
+    )..where((t) => t.url.equals(url))).getSingleOrNull();
+
     if (asset != null) {
       final file = File(asset.localPath);
       if (await file.exists()) {
         await file.delete();
       }
-      await (_db.delete(_db.offlineAssetsTable)..where((t) => t.url.equals(url))).go();
+      await (_db.delete(
+        _db.offlineAssetsTable,
+      )..where((t) => t.url.equals(url))).go();
     }
   }
 }

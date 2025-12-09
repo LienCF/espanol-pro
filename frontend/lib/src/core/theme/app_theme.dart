@@ -10,8 +10,14 @@ class AppTheme {
         brightness: Brightness.light,
       ),
       textTheme: TextTheme(
-        displayLarge: GoogleFonts.montserrat(fontSize: 57, fontWeight: FontWeight.bold),
-        headlineMedium: GoogleFonts.montserrat(fontSize: 34, fontWeight: FontWeight.bold),
+        displayLarge: GoogleFonts.montserrat(
+          fontSize: 57,
+          fontWeight: FontWeight.bold,
+        ),
+        headlineMedium: GoogleFonts.montserrat(
+          fontSize: 34,
+          fontWeight: FontWeight.bold,
+        ),
         bodyLarge: GoogleFonts.openSans(fontSize: 16),
         bodyMedium: GoogleFonts.openSans(fontSize: 14),
       ),
@@ -26,8 +32,16 @@ class AppTheme {
         brightness: Brightness.dark,
       ),
       textTheme: TextTheme(
-        displayLarge: GoogleFonts.montserrat(fontSize: 57, fontWeight: FontWeight.bold, color: Colors.white),
-        headlineMedium: GoogleFonts.montserrat(fontSize: 34, fontWeight: FontWeight.bold, color: Colors.white),
+        displayLarge: GoogleFonts.montserrat(
+          fontSize: 57,
+          fontWeight: FontWeight.bold,
+          color: Colors.white,
+        ),
+        headlineMedium: GoogleFonts.montserrat(
+          fontSize: 34,
+          fontWeight: FontWeight.bold,
+          color: Colors.white,
+        ),
         bodyLarge: GoogleFonts.openSans(fontSize: 16, color: Colors.white70),
         bodyMedium: GoogleFonts.openSans(fontSize: 14, color: Colors.white70),
       ),

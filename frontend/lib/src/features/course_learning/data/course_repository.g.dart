@@ -53,7 +53,7 @@ final class CourseRepositoryProvider
   }
 }
 
-String _$courseRepositoryHash() => r'868892347902e358382ec2bbd943448379429a25';
+String _$courseRepositoryHash() => r'bce85500a0bcb3d3507bf808ebbba89d236a78c7';
 
 @ProviderFor(courseList)
 const courseListProvider = CourseListProvider._();

@@ -33,6 +33,17 @@
   <link rel="manifest" href="manifest.json">
 </head>
 <body>
+  <script>
+    // Workaround to suppress "Intl.v8BreakIterator is deprecated" warning in Flutter Web.
+    // If Intl.Segmenter is supported, we remove v8BreakIterator so Flutter uses the modern API.
+    // We use Object.getOwnPropertyDescriptor to check existence without triggering the warning.
+    if (typeof Intl.Segmenter !== 'undefined') {
+      var desc = Object.getOwnPropertyDescriptor(Intl, 'v8BreakIterator');
+      if (desc) {
+        delete Intl.v8BreakIterator;
+      }
+    }
+  </script>
   <script src="sql-wasm.js"></script>
   <script src="flutter_bootstrap.js" async></script>
 </body>

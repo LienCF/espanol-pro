@@ -25,29 +25,31 @@ class _CourseDetailScreenState extends ConsumerState<CourseDetailScreen> {
     });
 
     try {
-      await ref.read(courseDownloaderProvider).downloadCourse(
-        widget.courseId,
-        onProgress: (progress) {
-          if (mounted) {
-            setState(() {
-              _downloadProgress = progress;
-            });
-          }
-        },
-      );
+      await ref
+          .read(courseDownloaderProvider)
+          .downloadCourse(
+            widget.courseId,
+            onProgress: (progress) {
+              if (mounted) {
+                setState(() {
+                  _downloadProgress = progress;
+                });
+              }
+            },
+          );
       if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('Download complete!')),
-        );
+        ScaffoldMessenger.of(
+          context,
+        ).showSnackBar(const SnackBar(content: Text('Download complete!')));
         setState(() {
           _downloadProgress = null; // Hide progress bar
         });
       }
     } catch (e) {
       if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('Download failed: $e')),
-        );
+        ScaffoldMessenger.of(
+          context,
+        ).showSnackBar(SnackBar(content: Text('Download failed: $e')));
         setState(() {
           _downloadProgress = null;
         });
@@ -66,22 +68,26 @@ class _CourseDetailScreenState extends ConsumerState<CourseDetailScreen> {
           _buildSliverAppBar(context, courseAsync),
           unitsAsync.when(
             data: (units) => SliverList(
-              delegate: SliverChildBuilderDelegate(
-                (context, index) {
-                  final unit = units[index];
-                  return UnitSection(unit: unit, courseId: widget.courseId);
-                },
-                childCount: units.length,
-              ),
+              delegate: SliverChildBuilderDelegate((context, index) {
+                final unit = units[index];
+                return UnitSection(unit: unit, courseId: widget.courseId);
+              }, childCount: units.length),
             ),
             loading: () => SliverList(
               delegate: SliverChildBuilderDelegate(
                 (context, index) => Padding(
-                  padding: const EdgeInsets.symmetric(vertical: 8.0, horizontal: 16.0),
+                  padding: const EdgeInsets.symmetric(
+                    vertical: 8.0,
+                    horizontal: 16.0,
+                  ),
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      Container(width: 150, height: 20, color: Colors.grey.shade300),
+                      Container(
+                        width: 150,
+                        height: 20,
+                        color: Colors.grey.shade300,
+                      ),
                       const SizedBox(height: 8),
                       Container(
                         height: 100,
@@ -106,7 +112,10 @@ class _CourseDetailScreenState extends ConsumerState<CourseDetailScreen> {
     );
   }
 
-  Widget _buildSliverAppBar(BuildContext context, AsyncValue<dynamic> courseAsync) {
+  Widget _buildSliverAppBar(
+    BuildContext context,
+    AsyncValue<dynamic> courseAsync,
+  ) {
     return SliverAppBar.large(
       expandedHeight: 200,
       pinned: true,
@@ -136,9 +145,9 @@ class _CourseDetailScreenState extends ConsumerState<CourseDetailScreen> {
       flexibleSpace: FlexibleSpaceBar(
         title: courseAsync.when(
           data: (course) => Text(
-            getLocalized(context, course?.title) ?? 'Course Not Found', 
+            getLocalized(context, course?.title) ?? 'Course Not Found',
             style: const TextStyle(fontSize: 16),
-          ), 
+          ),
           loading: () => const Text('Loading...'),
           error: (_, __) => const Text('Error'),
         ),
@@ -150,7 +159,7 @@ class _CourseDetailScreenState extends ConsumerState<CourseDetailScreen> {
                 gradient: LinearGradient(
                   begin: Alignment.topLeft,
                   end: Alignment.bottomRight,
-                  colors: isSpecialized 
+                  colors: isSpecialized
                       ? [Colors.orange.shade300, Colors.deepOrange.shade400]
                       : [Colors.blue.shade300, Colors.indigo.shade400],
                 ),
@@ -195,21 +204,30 @@ class UnitSection extends ConsumerWidget {
             child: Text(
               getLocalized(context, unit.title),
               style: Theme.of(context).textTheme.titleMedium?.copyWith(
-                    fontWeight: FontWeight.bold,
-                    color: Theme.of(context).colorScheme.primary,
-                  ),
+                fontWeight: FontWeight.bold,
+                color: Theme.of(context).colorScheme.primary,
+              ),
             ),
           ),
           lessonsAsync.when(
             data: (lessons) => Card(
               elevation: 0,
-              color: Theme.of(context).colorScheme.surfaceContainerHighest.withOpacity(0.3),
+              color: Theme.of(
+                context,
+              ).colorScheme.surfaceContainerHighest.withOpacity(0.3),
               shape: RoundedRectangleBorder(
                 borderRadius: BorderRadius.circular(12),
-                side: BorderSide(color: Theme.of(context).colorScheme.outlineVariant),
+                side: BorderSide(
+                  color: Theme.of(context).colorScheme.outlineVariant,
+                ),
               ),
               child: Column(
-                children: lessons.map((lesson) => _LessonTile(lesson: lesson, courseId: courseId)).toList(),
+                children: lessons
+                    .map(
+                      (lesson) =>
+                          _LessonTile(lesson: lesson, courseId: courseId),
+                    )
+                    .toList(),
               ),
             ),
             loading: () => const LinearProgressIndicator(),
@@ -248,7 +266,7 @@ class _LessonTile extends StatelessWidget {
         child: Icon(_getIconForType(lesson.contentType), size: 20),
       ),
       title: Text(getLocalized(context, lesson.title)),
-      trailing: lesson.isCompleted 
+      trailing: lesson.isCompleted
           ? const Icon(Icons.check_circle, color: Colors.green)
           : const Icon(Icons.chevron_right),
       onTap: () {

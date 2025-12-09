@@ -24,6 +24,9 @@ class AppLocalizationsEn extends AppLocalizations {
   String get skillsTab => 'Skills';
 
   @override
+  String get leaderboardTab => 'Leaderboard';
+
+  @override
   String get generalProficiency => 'General Proficiency';
 
   @override
@@ -164,4 +167,22 @@ class AppLocalizationsEn extends AppLocalizations {
   String questionProgress(int current, int total) {
     return 'Question $current of $total';
   }
+
+  @override
+  String get rankLabel => 'Rank';
+
+  @override
+  String get xpLabel => 'XP';
+
+  @override
+  String get streakLabel => 'Streak';
+
+  @override
+  String get noLeaderboardData => 'No data yet.';
+
+  @override
+  String get leaderboardTitle => 'Leaderboard';
+
+  @override
+  String get comprehensionCheck => 'Comprehension Check';
 }

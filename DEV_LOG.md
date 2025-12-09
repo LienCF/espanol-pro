@@ -304,3 +304,20 @@
         *   Built `flutter build web --release`.
         *   Deployed frontend to Cloudflare Pages (`espanol-pro-web`).
         *   Deployed backend to Cloudflare Workers (`espanol-pro-backend`).
+
+### 2025-12-07 (Later)
+*   **Task:** Bug Fix - Audio Playback Error (-1013)
+*   **Status:** Completed
+*   **Details:**
+    *   **Issue:** Frontend was attempting to play audio from private R2 bucket URLs provided by the database seed, causing `NSURLErrorUserAuthenticationRequired (-1013)`.
+    *   **Backend:** Added `GET /audio/:filename` route in `index.ts` to proxy audio files from R2, allowing controlled public access. Adjusted route to look for files at bucket root.
+    *   **Data:** Updated `seed_niche_content.sql` to use relative paths (e.g., `audio/file.mp3`) instead of absolute R2 URLs. Bumper course versions to `10` to force frontend sync.
+    *   **Frontend:** Updated `AssetService.dart` to detect relative network paths and prepend `ApiConstants.baseUrl`.
+    *   **Deploy:** Deployed updated backend and re-seeded the remote database.
+
+### 2025-12-07 (Later)
+*   **Task:** Web Deployment
+*   **Status:** Completed
+*   **Details:**
+    *   Built release version of web app (`flutter build web --release`).
+    *   Deployed to Cloudflare Pages (`espanol-pro-web`).

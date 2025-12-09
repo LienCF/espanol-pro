@@ -17,11 +17,17 @@ class _PaywallScreenState extends ConsumerState<PaywallScreen> {
   Future<void> _purchase() async {
     setState(() => _isLoading = true);
     try {
-      await ref.read(subscriptionRepositoryProvider.notifier).startCheckoutSession();
+      await ref
+          .read(subscriptionRepositoryProvider.notifier)
+          .startCheckoutSession();
       // Don't close immediately, wait for user to come back.
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('Opening checkout... Please return here after payment.')),
+          const SnackBar(
+            content: Text(
+              'Opening checkout... Please return here after payment.',
+            ),
+          ),
         );
       }
     } catch (e) {
@@ -40,14 +46,22 @@ class _PaywallScreenState extends ConsumerState<PaywallScreen> {
   Future<void> _refresh() async {
     setState(() => _isLoading = true);
     try {
-      await ref.read(subscriptionRepositoryProvider.notifier).refreshSubscriptionStatus();
+      await ref
+          .read(subscriptionRepositoryProvider.notifier)
+          .refreshSubscriptionStatus();
       if (mounted) {
         final isPremium = ref.read(currentUserProvider)?.isPremium ?? false;
         if (isPremium) {
-          ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Welcome to Pro!')));
+          ScaffoldMessenger.of(
+            context,
+          ).showSnackBar(const SnackBar(content: Text('Welcome to Pro!')));
           context.pop();
         } else {
-          ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Still free tier. Check back in a moment.')));
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(
+              content: Text('Still free tier. Check back in a moment.'),
+            ),
+          );
         }
       }
     } finally {
@@ -98,9 +112,17 @@ class _PaywallScreenState extends ConsumerState<PaywallScreen> {
                   textAlign: TextAlign.center,
                 ),
                 const Spacer(flex: 2),
-                _buildFeatureRow(context, Icons.chat_bubble, 'Unlimited AI Chat'),
+                _buildFeatureRow(
+                  context,
+                  Icons.chat_bubble,
+                  'Unlimited AI Chat',
+                ),
                 _buildFeatureRow(context, Icons.mic, 'Pronunciation Scoring'),
-                _buildFeatureRow(context, Icons.work, 'Medical & Construction Spanish'),
+                _buildFeatureRow(
+                  context,
+                  Icons.work,
+                  'Medical & Construction Spanish',
+                ),
                 const Spacer(flex: 2),
                 SizedBox(
                   width: double.infinity,
@@ -111,9 +133,12 @@ class _PaywallScreenState extends ConsumerState<PaywallScreen> {
                       backgroundColor: Colors.orange,
                       foregroundColor: Colors.white,
                     ),
-                    child: _isLoading 
+                    child: _isLoading
                         ? const CircularProgressIndicator(color: Colors.white)
-                        : const Text('Checkout with Stripe (\$9.99)', style: TextStyle(fontSize: 18)),
+                        : const Text(
+                            'Checkout with Stripe (\$9.99)',
+                            style: TextStyle(fontSize: 18),
+                          ),
                   ),
                 ),
                 const SizedBox(height: 16),

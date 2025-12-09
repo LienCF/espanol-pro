@@ -35,7 +35,57 @@ app.get('/', (c) => {
   return c.text('Hola, Español Pro API!')
 })
 
-// ... existing endpoints ...
+// --- Helper Functions for Gamification ---
+
+async function updateStreak(db: D1Database, userId: string) {
+  const today = new Date().toISOString().split('T')[0];
+  
+  // Check if activity already logged for today
+  const existing = await db.prepare('SELECT * FROM user_streaks WHERE user_id = ? AND activity_date = ?').bind(userId, today).first();
+  
+  if (existing) {
+    // Already counted for today, just increment count
+    await db.prepare('UPDATE user_streaks SET activity_count = activity_count + 1 WHERE user_id = ? AND activity_date = ?').bind(userId, today).run();
+    return;
+  }
+
+  // It's a new day! Check yesterday for streak continuity
+  const yesterday = new Date(Date.now() - 86400000).toISOString().split('T')[0];
+  const yesterdayStreak = await db.prepare('SELECT * FROM user_streaks WHERE user_id = ? AND activity_date = ?').bind(userId, yesterday).first();
+
+  let newStreakVal = 1;
+  
+  if (yesterdayStreak) {
+    // Get current user streak count from users table to be safe or just increment based on continuity
+    const user = await db.prepare('SELECT current_streak FROM users WHERE id = ?').bind(userId).first();
+    const current = (user?.current_streak as number) || 0;
+    newStreakVal = current + 1;
+  } else {
+    // Streak broken or new
+    newStreakVal = 1;
+  }
+
+  // Update User table
+  await db.prepare('UPDATE users SET current_streak = ?, last_streak_update = ? WHERE id = ?')
+    .bind(newStreakVal, Math.floor(Date.now()/1000), userId).run();
+
+  // Log daily activity
+  await db.prepare('INSERT INTO user_streaks (user_id, activity_date, activity_count) VALUES (?, ?, 1)').bind(userId, today).run();
+  
+  // Bonus XP for keeping streak
+  if (newStreakVal > 1) {
+    const bonus = Math.min(newStreakVal * 10, 100); // Cap bonus
+    await addXP(db, userId, bonus, 'STREAK_BONUS', today);
+  }
+}
+
+async function addXP(db: D1Database, userId: string, amount: number, type: string, refId: string | null = null) {
+  await db.prepare('INSERT INTO xp_logs (user_id, amount, source_type, reference_id, timestamp) VALUES (?, ?, ?, ?, ?)')
+    .bind(userId, amount, type, refId, Math.floor(Date.now()/1000)).run();
+  
+  await db.prepare('UPDATE users SET total_xp = total_xp + ? WHERE id = ?')
+    .bind(amount, userId).run();
+}
 
 // 12. Stripe Checkout Session
 app.post('/api/payments/create-checkout-session', async (c) => {
@@ -120,11 +170,8 @@ app.post('/api/payments/webhook', async (c) => {
   return c.json({ received: true })
 })
 
-// ... rest of the app ...
-
 // 11. Presigned Upload URL
 app.post('/api/upload/presign', async (c) => {
-  // ... existing code ...
   try {
     const { filename, contentType } = await c.req.json()
     if (!filename) return c.json({ error: 'Filename is required' }, 400)
@@ -193,10 +240,6 @@ app.get('/api/courses/:id', async (c) => {
     ).bind(courseId).all()
 
     // 3. Get Lessons for these units
-    // Note: is_completed logic here is simplified. Ideally, join with user_course_progress or study_logs more robustly.
-    // For now, let's just return lessons. Frontend handles progress sync separately via list endpoint or local logic.
-    // Actually, let's try to fetch completion status if possible.
-    // But study_logs might be huge. Let's stick to structure.
     const { results: lessons } = await c.env.DB.prepare(`
       SELECT l.* 
       FROM lessons l
@@ -221,8 +264,6 @@ app.get('/api/courses/:id', async (c) => {
   }
 })
 
-// ... existing code ...
-
 // 6. Auth (Login / Exchange Token)
 app.post('/api/auth/login', async (c) => {
   try {
@@ -242,9 +283,7 @@ app.post('/api/auth/login', async (c) => {
       const body = await c.req.json();
       email = body.email;
       if (!email) return c.json({ error: 'Email is required' }, 400);
-      // Legacy/Dev: Create a deterministic UUID based on email? Or find existing?
-      // For legacy, we might not have a stable ID if we just gen random.
-      // But existing code queried by email.
+      
       const existingUser = await c.env.DB.prepare('SELECT * FROM users WHERE email = ?').bind(email).first();
       if (existingUser) {
         userId = existingUser.id as string;
@@ -279,8 +318,6 @@ app.post('/api/auth/login', async (c) => {
     return c.json({ error: 'Login failed' }, 500)
   }
 })
-
-// ... remaining code ...
 
 // 7. AI Speech Evaluation
 app.post('/api/ai/evaluate-speech', async (c) => {
@@ -344,46 +381,84 @@ app.post('/api/ai/evaluate-speech', async (c) => {
   }
 })
 
-// 8. AI Chat (Llama 3 Roleplay)
+// 8. AI Chat (Roleplay with History)
 app.post('/api/ai/chat', async (c) => {
   try {
-    const { messages } = await c.req.json()
-    
-    if (!messages || !Array.isArray(messages)) {
-      return c.json({ error: 'Messages array is required' }, 400)
+    const { message, conversationId: reqConvId, reset } = await c.req.json()
+    const user = c.get('user') as any
+    // Fallback ID for testing/unauthed if needed, but prefer auth
+    const userId = user?.sub || (await c.req.json())['userId'] 
+
+    if (!message) {
+      return c.json({ error: 'Message is required' }, 400)
     }
 
-    // Inject Grammar Tutor Instruction
-    const grammarInstruction = " IMPORTANT: If the user makes a grammatical error, reply naturally first, then append a correction at the very end in this specific format: [CORRECTION: <Spanish correction> - <English explanation>]."
-    
-    const processedMessages = messages.map(msg => {
-      if (msg.role === 'system') {
-        return { ...msg, content: msg.content + grammarInstruction }
-      }
-      return msg
-    })
-
-    // If no system message was found, add one (optional, but good practice)
-    if (!processedMessages.some(m => m.role === 'system')) {
-      processedMessages.unshift({
-        role: 'system',
-        content: "You are a helpful Spanish tutor." + grammarInstruction
-      })
+    if (!userId) {
+      return c.json({ error: 'User ID is required' }, 400)
     }
 
+    let conversationId = reqConvId || crypto.randomUUID()
+    
+    // 1. Reset if requested
+    if (reset) {
+      await c.env.DB.prepare('DELETE FROM chat_history WHERE conversation_id = ?').bind(conversationId).run()
+    }
+
+    // 2. Retrieve History (Last 10 messages)
+    const { results: history } = await c.env.DB.prepare(`
+      SELECT role, content 
+      FROM chat_history 
+      WHERE conversation_id = ? 
+      ORDER BY timestamp ASC 
+      LIMIT 10
+    `).bind(conversationId).all()
+
+    const messages = history.map((h: any) => ({ role: h.role, content: h.content }))
+
+    // 3. System Prompt Construction
+    const systemPrompt = `You are Carlos, a friendly Spanish tutor from Mexico. 
+    You are roleplaying a scenario. Keep responses concise (under 50 words) and suitable for A2 level learners. 
+    IMPORTANT: If the user makes a grammatical error, reply naturally first, then append a correction at the very end in this specific format: [CORRECTION: <Spanish correction> - <English explanation>].`
+
+    const context = [
+      { role: 'system', content: systemPrompt },
+      ...messages,
+      { role: 'user', content: message }
+    ]
+
+    // 4. Inference
     // @ts-ignore
     const aiResponse = await c.env.AI.run('@cf/meta/llama-3-8b-instruct', {
-      messages: processedMessages
+      messages: context
     })
 
-    return c.json({ response: aiResponse.response })
-  } catch (e) {
+    const responseText = aiResponse.response
+
+    // 5. Persistence
+    // Save User Message
+    await c.env.DB.prepare(`
+      INSERT INTO chat_history (conversation_id, user_id, role, content, timestamp) 
+      VALUES (?, ?, ?, ?, ?)
+    `).bind(conversationId, userId, 'user', message, Math.floor(Date.now() / 1000)).run()
+
+    // Save AI Response
+    await c.env.DB.prepare(`
+      INSERT INTO chat_history (conversation_id, user_id, role, content, timestamp) 
+      VALUES (?, ?, ?, ?, ?)
+    `).bind(conversationId, userId, 'assistant', responseText, Math.floor(Date.now() / 1000)).run()
+
+    return c.json({ 
+      response: responseText, 
+      conversationId: conversationId 
+    })
+
+  } catch (e: any) {
     console.error(e)
-    return c.json({ error: 'AI Chat failed' }, 500)
+    return c.json({ error: 'AI Chat failed: ' + e.message }, 500)
   }
 })
 
-// 14. Record Learning Attempt (BKT)
+// 14. Record Learning Attempt (BKT) + Gamification
 app.post('/api/learning/attempt', async (c) => {
   try {
     const { userId: bodyUserId, lessonId, isCorrect } = await c.req.json()
@@ -394,13 +469,22 @@ app.post('/api/learning/attempt', async (c) => {
       return c.json({ error: 'Missing required fields' }, 400)
     }
 
+    // Update Streak
+    await updateStreak(c.env.DB, userId);
+
+    // Award XP
+    if (isCorrect) {
+      await addXP(c.env.DB, userId, 10, 'LESSON_ATTEMPT', lessonId);
+    } else {
+      await addXP(c.env.DB, userId, 2, 'LESSON_ATTEMPT_FAIL', lessonId); // Consolation XP
+    }
+
     // 1. Find KC for this lesson
     const lesson = await c.env.DB.prepare(
       'SELECT kc_id FROM lessons WHERE id = ?'
     ).bind(lessonId).first()
 
     if (!lesson || !lesson.kc_id) {
-      // Lesson has no associated knowledge component, skip BKT
       return c.json({ skipped: true, reason: 'No KC linked' })
     }
 
@@ -425,7 +509,7 @@ app.post('/api/learning/attempt', async (c) => {
         last_practice_time = excluded.last_practice_time
     `).bind(userId, kcId, p_new, Math.floor(Date.now() / 1000)).run()
 
-    // 5. Log interaction (optional but good for analytics)
+    // 5. Log interaction
     await c.env.DB.prepare(`
       INSERT INTO study_logs (user_id, lesson_id, interaction_type, is_correct)
       VALUES (?, ?, ?, ?)
@@ -444,7 +528,7 @@ app.post('/api/learning/attempt', async (c) => {
   }
 })
 
-// 15. Record Progress (General Completion)
+// 15. Record Progress (General Completion) + Gamification
 app.post('/api/progress', async (c) => {
   try {
     const { userId: bodyUserId, courseId, lessonId, isCorrect, interactionType } = await c.req.json()
@@ -455,13 +539,19 @@ app.post('/api/progress', async (c) => {
       return c.json({ error: 'Missing required fields' }, 400)
     }
 
+    // Update Streak
+    await updateStreak(c.env.DB, userId);
+
+    // Award XP for Completion
+    await addXP(c.env.DB, userId, 50, 'LESSON_COMPLETE', lessonId);
+
     // 1. Log interaction
     await c.env.DB.prepare(`
       INSERT INTO study_logs (user_id, lesson_id, interaction_type, is_correct)
       VALUES (?, ?, ?, ?)
     `).bind(userId, lessonId, interactionType || 'COMPLETION', isCorrect ? 1 : 0).run()
 
-    // 2. Update Course Progress (Increment count)
+    // 2. Update Course Progress
     await c.env.DB.prepare(`
       INSERT INTO user_course_progress (user_id, course_id, completed_lessons_count, last_updated)
       VALUES (?, ?, 1, ?)
@@ -477,7 +567,66 @@ app.post('/api/progress', async (c) => {
   }
 })
 
+// 16. Leaderboard API
+app.get('/api/leaderboard', async (c) => {
+  try {
+    // Top 10 Global by XP
+    const { results: leaderboard } = await c.env.DB.prepare(`
+      SELECT id as userId, display_name as displayName, total_xp as xp, current_streak as streak
+      FROM users
+      ORDER BY total_xp DESC
+      LIMIT 10
+    `).all();
+
+    const user = c.get('user') as any
+    let userRank = null;
+    
+    if (user) {
+      const userId = user.sub;
+      // Calculate rank
+      const rankResult = await c.env.DB.prepare(`
+        SELECT COUNT(*) + 1 as rank FROM users WHERE total_xp > (SELECT total_xp FROM users WHERE id = ?)
+      `).bind(userId).first();
+      
+      const userData = await c.env.DB.prepare('SELECT total_xp, current_streak FROM users WHERE id = ?').bind(userId).first();
+      
+      if (userData) {
+        userRank = {
+          rank: rankResult?.rank || 0,
+          xp: userData.total_xp,
+          streak: userData.current_streak
+        };
+      }
+    }
+
+    return c.json({
+      leaderboard,
+      userRank
+    })
+  } catch (e: any) {
+    return c.json({ error: e.message }, 500)
+  }
+})
+
 // 9. Serve Audio from R2
+app.get('/audio/:filename', async (c) => {
+  const filename = c.req.param('filename')
+  const key = filename
+  const object = await c.env.BUCKET.get(key)
+
+  if (object === null) {
+    return c.text('Object Not Found', 404)
+  }
+
+  const headers = new Headers()
+  object.writeHttpMetadata(headers)
+  headers.set('etag', object.httpEtag)
+
+  return new Response(object.body, {
+    headers,
+  })
+})
+
 app.get('/:filename', async (c) => {
   const filename = c.req.param('filename')
   const object = await c.env.BUCKET.get(filename)

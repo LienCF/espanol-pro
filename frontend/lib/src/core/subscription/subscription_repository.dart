@@ -1,5 +1,3 @@
-import 'package:dio/dio.dart';
-import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:riverpod_annotation/riverpod_annotation.dart';
 import 'package:url_launcher/url_launcher.dart';
 import '../api/api_client.dart';
@@ -38,7 +36,9 @@ class SubscriptionRepository extends _$SubscriptionRepository {
     // Force refresh user profile from backend
     final user = ref.read(currentUserProvider);
     if (user != null) {
-      await ref.read(authRepositoryProvider).login(user.email); // Re-fetch profile
+      await ref
+          .read(authRepositoryProvider)
+          .login(user.email); // Re-fetch profile
     }
   }
 }

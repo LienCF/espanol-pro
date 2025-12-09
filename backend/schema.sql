@@ -4,7 +4,11 @@ CREATE TABLE IF NOT EXISTS users (
     email TEXT UNIQUE NOT NULL,
     display_name TEXT,
     created_at INTEGER DEFAULT (unixepoch()),
-    last_login INTEGER
+    last_login INTEGER,
+    is_premium BOOLEAN DEFAULT 0,
+    total_xp INTEGER DEFAULT 0,
+    current_streak INTEGER DEFAULT 0,
+    last_streak_update INTEGER -- Timestamp of last streak activity
 );
 
 -- Courses Table (Tracks & Modules)
@@ -82,5 +86,52 @@ CREATE TABLE IF NOT EXISTS study_logs (
     interaction_type TEXT, -- 'ANSWER', 'VOICE_ATTEMPT'
     is_correct BOOLEAN,
     response_time_ms INTEGER,
+    timestamp INTEGER DEFAULT (unixepoch())
+);
+
+-- Chat History for AI Roleplay
+CREATE TABLE IF NOT EXISTS chat_history (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    conversation_id TEXT NOT NULL,
+    user_id TEXT NOT NULL,
+    role TEXT NOT NULL, -- 'user' or 'assistant' or 'system'
+    content TEXT NOT NULL,
+    timestamp INTEGER DEFAULT (unixepoch())
+);
+CREATE INDEX IF NOT EXISTS idx_chat_history_conversation ON chat_history(conversation_id, timestamp);
+
+-- User Streaks (Detailed history)
+CREATE TABLE IF NOT EXISTS user_streaks (
+    user_id TEXT NOT NULL,
+    activity_date TEXT NOT NULL, -- YYYY-MM-DD format (UTC)
+    activity_count INTEGER DEFAULT 1,
+    PRIMARY KEY (user_id, activity_date),
+    FOREIGN KEY (user_id) REFERENCES users(id)
+);
+
+-- XP Logs (Audit trail)
+CREATE TABLE IF NOT EXISTS xp_logs (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    user_id TEXT NOT NULL,
+    amount INTEGER NOT NULL,
+    source_type TEXT NOT NULL, -- 'LESSON_COMPLETE', 'QUIZ_PERFECT', 'STREAK_BONUS'
+    reference_id TEXT, -- lesson_id or other ref
+    timestamp INTEGER DEFAULT (unixepoch())
+);
+
+-- Admin Users (RBAC)
+CREATE TABLE IF NOT EXISTS admins (
+    user_id TEXT PRIMARY KEY,
+    role TEXT DEFAULT 'editor', -- 'superadmin', 'editor'
+    created_at INTEGER DEFAULT (unixepoch()),
+    FOREIGN KEY (user_id) REFERENCES users(id)
+);
+
+-- Analytics Events
+CREATE TABLE IF NOT EXISTS analytics_events (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    user_id TEXT,
+    event_name TEXT NOT NULL,
+    properties TEXT, -- JSON
     timestamp INTEGER DEFAULT (unixepoch())
 );

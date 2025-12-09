@@ -2,7 +2,7 @@ import 'dart:convert';
 import 'package:riverpod_annotation/riverpod_annotation.dart';
 import '../../../core/services/download_manager.dart';
 import 'course_repository.dart';
-import 'app_database.dart'; // For drift models if needed, though repo returns domain models
+// For drift models if needed, though repo returns domain models
 
 part 'course_downloader.g.dart';
 
@@ -12,10 +12,13 @@ class CourseDownloader {
 
   CourseDownloader(this._courseRepo, this._downloadManager);
 
-  Future<void> downloadCourse(String courseId, {Function(double)? onProgress}) async {
+  Future<void> downloadCourse(
+    String courseId, {
+    Function(double)? onProgress,
+  }) async {
     // 1. Fetch Units
     final units = await _courseRepo.watchUnits(courseId).first;
-    
+
     final allAssets = <String>{};
 
     // 2. Iterate Units & Lessons to find assets
@@ -83,15 +86,16 @@ class CourseDownloader {
         case 'IMAGE_QUIZ':
           // 'question_audio', and options may have images?
           if (data is List) {
-             for (final item in data) {
-               if (item['question_audio'] != null) assets.add(item['question_audio']);
-               if (item['options'] is List) {
-                 for (final opt in item['options']) {
-                   // If options have images? Currently local schema says just text/correct.
-                   // If we add images later, parse here.
-                 }
-               }
-             }
+            for (final item in data) {
+              if (item['question_audio'] != null)
+                assets.add(item['question_audio']);
+              if (item['options'] is List) {
+                for (final opt in item['options']) {
+                  // If options have images? Currently local schema says just text/correct.
+                  // If we add images later, parse here.
+                }
+              }
+            }
           }
           break;
         case 'QUIZ':
@@ -100,7 +104,7 @@ class CourseDownloader {
           // Usually text based, but might have audio prompts later.
           // Check for common keys just in case.
           if (data is Map) {
-             if (data['audio'] != null) assets.add(data['audio']);
+            if (data['audio'] != null) assets.add(data['audio']);
           }
           break;
       }

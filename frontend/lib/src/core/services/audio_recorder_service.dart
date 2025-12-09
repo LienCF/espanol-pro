@@ -1,4 +1,3 @@
-import 'dart:io';
 import 'package:path_provider/path_provider.dart';
 import 'package:record/record.dart';
 import 'package:riverpod_annotation/riverpod_annotation.dart';
@@ -14,12 +13,13 @@ class AudioRecorderService {
 
   Future<void> startRecording() async {
     if (await hasPermission()) {
-       final dir = await getTemporaryDirectory();
-       final path = '${dir.path}/audio_${DateTime.now().millisecondsSinceEpoch}.m4a';
-       
-       const config = RecordConfig(encoder: AudioEncoder.aacLc);
-       
-       await _recorder.start(config, path: path);
+      final dir = await getTemporaryDirectory();
+      final path =
+          '${dir.path}/audio_${DateTime.now().millisecondsSinceEpoch}.m4a';
+
+      const config = RecordConfig(encoder: AudioEncoder.aacLc);
+
+      await _recorder.start(config, path: path);
     } else {
       throw Exception('Microphone permission denied');
     }
@@ -28,7 +28,7 @@ class AudioRecorderService {
   Future<String?> stopRecording() async {
     return await _recorder.stop();
   }
-  
+
   Future<void> dispose() async {
     _recorder.dispose();
   }

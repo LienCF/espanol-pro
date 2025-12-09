@@ -24,6 +24,9 @@ class AppLocalizationsZh extends AppLocalizations {
   String get skillsTab => '技能';
 
   @override
+  String get leaderboardTab => '排行榜';
+
+  @override
   String get generalProficiency => '通用能力 (General)';
 
   @override
@@ -164,4 +167,22 @@ class AppLocalizationsZh extends AppLocalizations {
   String questionProgress(int current, int total) {
     return '第 $current 題，共 $total 題';
   }
+
+  @override
+  String get rankLabel => '排名';
+
+  @override
+  String get xpLabel => '經驗值';
+
+  @override
+  String get streakLabel => '連勝';
+
+  @override
+  String get noLeaderboardData => '尚無數據';
+
+  @override
+  String get leaderboardTitle => '排行榜';
+
+  @override
+  String get comprehensionCheck => '理解測驗';
 }

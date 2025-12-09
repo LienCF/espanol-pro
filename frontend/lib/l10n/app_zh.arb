@@ -4,6 +4,7 @@
   "logout": "登出",
   "coursesTab": "課程",
   "skillsTab": "技能",
+  "leaderboardTab": "排行榜",
   "generalProficiency": "通用能力 (General)",
   "specializedTracks": "專業領域 (ESP)",
   "lessonsCompleted": "已完成 {completed} / {total} 堂課",
@@ -47,5 +48,11 @@
   "audioPlaybackError": "音訊播放錯誤：{error}",
   "drillBase": "基礎句",
   "drillSubstitute": "替換詞",
-  "questionProgress": "第 {current} 題，共 {total} 題"
+  "questionProgress": "第 {current} 題，共 {total} 題",
+  "rankLabel": "排名",
+  "xpLabel": "經驗值",
+  "streakLabel": "連勝",
+  "noLeaderboardData": "尚無數據",
+  "leaderboardTitle": "排行榜",
+  "comprehensionCheck": "理解測驗"
 }

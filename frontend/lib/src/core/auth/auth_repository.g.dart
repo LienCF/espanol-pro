@@ -53,7 +53,8 @@ String _$authRepositoryHash() => r'd6cf1a6b8d6ce7ca54a928cda826dcb4c0d81dfc';
 @ProviderFor(CurrentUser)
 const currentUserProvider = CurrentUserProvider._();
 
-final class CurrentUserProvider extends $NotifierProvider<CurrentUser, User?> {
+final class CurrentUserProvider
+    extends $NotifierProvider<CurrentUser, AppUser?> {
   const CurrentUserProvider._()
     : super(
         from: null,
@@ -73,28 +74,28 @@ final class CurrentUserProvider extends $NotifierProvider<CurrentUser, User?> {
   CurrentUser create() => CurrentUser();
 
   /// {@macro riverpod.override_with_value}
-  Override overrideWithValue(User? value) {
+  Override overrideWithValue(AppUser? value) {
     return $ProviderOverride(
       origin: this,
-      providerOverride: $SyncValueProvider<User?>(value),
+      providerOverride: $SyncValueProvider<AppUser?>(value),
     );
   }
 }
 
-String _$currentUserHash() => r'0ca9b7aecf5982ba86643035120b19b17543c36f';
+String _$currentUserHash() => r'b3fdfa18864c5fa4b53284e349609e3c4dd67a04';
 
-abstract class _$CurrentUser extends $Notifier<User?> {
-  User? build();
+abstract class _$CurrentUser extends $Notifier<AppUser?> {
+  AppUser? build();
   @$mustCallSuper
   @override
   void runBuild() {
     final created = build();
-    final ref = this.ref as $Ref<User?, User?>;
+    final ref = this.ref as $Ref<AppUser?, AppUser?>;
     final element =
         ref.element
             as $ClassProviderElement<
-              AnyNotifier<User?, User?>,
-              User?,
+              AnyNotifier<AppUser?, AppUser?>,
+              AppUser?,
               Object?,
               Object?
             >;

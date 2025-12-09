@@ -14,9 +14,7 @@ import 'src/core/theme/app_theme.dart';
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
 
-  await Firebase.initializeApp(
-    options: DefaultFirebaseOptions.currentPlatform,
-  );
+  await Firebase.initializeApp(options: DefaultFirebaseOptions.currentPlatform);
 
   if (!kIsWeb && (Platform.isWindows || Platform.isLinux || Platform.isMacOS)) {
     await windowManager.ensureInitialized();
@@ -30,7 +28,7 @@ void main() async {
       titleBarStyle: TitleBarStyle.normal,
       title: 'Español Pro - Edge-Native Learning',
     );
-    
+
     windowManager.waitUntilReadyToShow(windowOptions, () async {
       await windowManager.show();
       await windowManager.focus();
@@ -55,7 +53,8 @@ class EspanolProApp extends ConsumerWidget {
   Widget build(BuildContext context, WidgetRef ref) {
     final router = ref.watch(routerProvider);
     return MaterialApp.router(
-      onGenerateTitle: (context) => AppLocalizations.of(context)?.appTitle ?? 'Español Pro',
+      onGenerateTitle: (context) =>
+          AppLocalizations.of(context)?.appTitle ?? 'Español Pro',
       theme: AppTheme.lightTheme,
       darkTheme: AppTheme.darkTheme,
       themeMode: ThemeMode.system,
@@ -71,7 +70,7 @@ class EspanolProApp extends ConsumerWidget {
         if (locale == null) return supportedLocales.first;
         for (var supportedLocale in supportedLocales) {
           if (supportedLocale.languageCode == locale.languageCode) {
-             return supportedLocale;
+            return supportedLocale;
           }
         }
         return supportedLocales.first;

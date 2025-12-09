@@ -1,4 +1,3 @@
-import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'core/auth/auth_repository.dart';
@@ -7,6 +6,7 @@ import 'features/dashboard/presentation/dashboard_screen.dart';
 import 'features/course_learning/presentation/course_detail_screen.dart';
 import 'features/course_learning/presentation/lesson_player_screen.dart';
 import 'features/subscription/presentation/paywall_screen.dart';
+import 'features/speech_practice/presentation/speech_practice_screen.dart';
 
 final routerProvider = Provider<GoRouter>((ref) {
   final authState = ref.watch(currentUserProvider);
@@ -28,13 +28,17 @@ final routerProvider = Provider<GoRouter>((ref) {
       return null;
     },
     routes: [
-      GoRoute(
-        path: '/login',
-        builder: (context, state) => const LoginScreen(),
-      ),
+      GoRoute(path: '/login', builder: (context, state) => const LoginScreen()),
       GoRoute(
         path: '/paywall',
         builder: (context, state) => const PaywallScreen(),
+      ),
+      GoRoute(
+        path: '/speech-practice',
+        builder: (context, state) {
+          final text = state.extra as String? ?? 'Hola, ¿cómo estás?';
+          return SpeechPracticeScreen(referenceText: text);
+        },
       ),
       GoRoute(
         path: '/',
@@ -52,7 +56,10 @@ final routerProvider = Provider<GoRouter>((ref) {
                 builder: (context, state) {
                   final courseId = state.pathParameters['id']!;
                   final lessonId = state.pathParameters['lessonId']!;
-                  return LessonPlayerScreen(lessonId: lessonId, courseId: courseId);
+                  return LessonPlayerScreen(
+                    lessonId: lessonId,
+                    courseId: courseId,
+                  );
                 },
               ),
             ],

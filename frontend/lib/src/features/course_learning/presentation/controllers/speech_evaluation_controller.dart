@@ -14,7 +14,8 @@ class SpeechEvaluationState with _$SpeechEvaluationState {
   const factory SpeechEvaluationState.initial() = _Initial;
   const factory SpeechEvaluationState.recording() = _Recording;
   const factory SpeechEvaluationState.processing() = _Processing;
-  const factory SpeechEvaluationState.success(SpeechEvaluationResult result) = _Success;
+  const factory SpeechEvaluationState.success(SpeechEvaluationResult result) =
+      _Success;
   const factory SpeechEvaluationState.error(String message) = _Error;
 }
 
@@ -34,7 +35,10 @@ class SpeechEvaluationController extends _$SpeechEvaluationController {
     }
   }
 
-  Future<void> stopRecordingAndEvaluate(String referenceText, String lessonId) async {
+  Future<void> stopRecordingAndEvaluate(
+    String referenceText,
+    String lessonId,
+  ) async {
     try {
       // 1. Stop Recording
       final path = await ref.read(audioRecorderServiceProvider).stopRecording();
@@ -42,29 +46,26 @@ class SpeechEvaluationController extends _$SpeechEvaluationController {
         state = const SpeechEvaluationState.error("Failed to capture audio");
         return;
       }
-      
+
       state = const SpeechEvaluationState.processing();
-      
+
       // 2. Upload and Evaluate
       final file = File(path);
-      final result = await ref.read(speechEvaluationRepositoryProvider).evaluateSpeech(
-        audioFile: file,
-        referenceText: referenceText,
-      );
-      
+      final result = await ref
+          .read(speechEvaluationRepositoryProvider)
+          .evaluateSpeech(audioFile: file, referenceText: referenceText);
+
       state = SpeechEvaluationState.success(result);
 
       // 3. Record Attempt (BKT)
-      await ref.read(learningRepositoryProvider).recordAttempt(
-        lessonId: lessonId,
-        isCorrect: result.isMatch,
-      );
-      
+      await ref
+          .read(learningRepositoryProvider)
+          .recordAttempt(lessonId: lessonId, isCorrect: result.isMatch);
     } catch (e) {
       state = SpeechEvaluationState.error(e.toString());
     }
   }
-  
+
   void reset() {
     state = const SpeechEvaluationState.initial();
   }

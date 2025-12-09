@@ -3,7 +3,7 @@
   "scripts": {
     "dev": "wrangler dev src/index.ts",
     "deploy": "wrangler deploy --minify src/index.ts",
-    "test": "vitest"
+    "test": "vitest run"
   },
   "dependencies": {
     "@aws-sdk/client-s3": "^3.943.0",
@@ -16,6 +16,6 @@
     "@cloudflare/workers-types": "^4.0.0",
     "typescript": "^5.0.0",
     "vitest": "^4.0.15",
-    "wrangler": "^3.114.15"
+    "wrangler": "^4.53.0"
   }
 }

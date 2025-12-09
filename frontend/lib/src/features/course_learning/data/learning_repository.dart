@@ -1,5 +1,4 @@
 import 'package:dio/dio.dart';
-import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:riverpod_annotation/riverpod_annotation.dart';
 import 'package:frontend/src/core/api/api_client.dart';
 
@@ -16,11 +15,14 @@ class LearningRepository {
     String? userId,
   }) async {
     try {
-      await _api.post('/api/learning/attempt', data: {
-        'lessonId': lessonId,
-        'isCorrect': isCorrect,
-        if (userId != null) 'userId': userId,
-      });
+      await _api.post(
+        '/api/learning/attempt',
+        data: {
+          'lessonId': lessonId,
+          'isCorrect': isCorrect,
+          if (userId != null) 'userId': userId,
+        },
+      );
     } catch (e) {
       // Log error but don't block the user flow, BKT can fail silently
       print('Failed to record learning attempt: $e');
