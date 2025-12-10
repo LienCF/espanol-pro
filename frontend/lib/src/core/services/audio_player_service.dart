@@ -1,3 +1,4 @@
+import 'package:flutter/foundation.dart';
 import 'package:just_audio/just_audio.dart';
 import 'package:riverpod_annotation/riverpod_annotation.dart';
 import 'content_sync_service.dart';
@@ -16,16 +17,16 @@ class AudioPlayerService {
       final localFile = await _syncService.getLocalAsset(url);
 
       if (localFile != null) {
-        print('Playing from local cache: ${localFile.path}');
+        debugPrint('Playing from local cache: ${localFile.path}');
         await _player.setFilePath(localFile.path);
       } else {
-        print('Playing from network: $url');
+        debugPrint('Playing from network: $url');
         await _player.setUrl(url);
       }
 
       await _player.play();
     } catch (e) {
-      print('Error playing audio: $e');
+      debugPrint('Error playing audio: $e');
       rethrow;
     }
   }

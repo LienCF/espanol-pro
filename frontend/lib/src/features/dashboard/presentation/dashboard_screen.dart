@@ -578,10 +578,12 @@ class CourseCard extends StatelessWidget {
             ),
             if (isLocked)
               Positioned.fill(
-                child: Container(
-                  color: Colors.white.withValues(alpha: 0.6),
-                  child: const Center(
-                    child: Icon(Icons.lock, size: 48, color: Colors.black26),
+                child: IgnorePointer(
+                  child: Container(
+                    color: Colors.white.withValues(alpha: 0.6),
+                    child: const Center(
+                      child: Icon(Icons.lock, size: 48, color: Colors.black26),
+                    ),
                   ),
                 ),
               ),

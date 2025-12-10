@@ -1,3 +1,4 @@
+import 'package:flutter/foundation.dart';
 import 'dart:convert';
 import 'package:riverpod_annotation/riverpod_annotation.dart';
 import '../../../core/services/download_manager.dart';
@@ -45,7 +46,7 @@ class CourseDownloader {
       try {
         await _downloadManager.downloadAsset(url);
       } catch (e) {
-        print('Failed to download asset $url: $e');
+        debugPrint('Failed to download asset $url: $e');
         // Continue despite errors? Yes for now.
       }
       completed++;
@@ -91,10 +92,10 @@ class CourseDownloader {
                 assets.add(item['question_audio']);
               }
               if (item['options'] is List) {
-                for (final opt in item['options']) {
-                  // If options have images? Currently local schema says just text/correct.
-                  // If we add images later, parse here.
-                }
+                // for (final opt in item['options']) {
+                //   // If options have images? Currently local schema says just text/correct.
+                //   // If we add images later, parse here.
+                // }
               }
             }
           }
@@ -110,7 +111,7 @@ class CourseDownloader {
           break;
       }
     } catch (e) {
-      print('Error parsing content for assets: $e');
+      debugPrint('Error parsing content for assets: $e');
     }
     return assets;
   }

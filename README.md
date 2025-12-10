@@ -27,28 +27,35 @@ Español Pro helps learners break through the "intermediate plateau" with a dual
 *   **Offline-First:** Complete offline support using **Drift (SQLite)**. Progress syncs automatically when back online via a request queue.
 *   **Zero-Egress Audio:** High-quality neural audio assets (generated via **Edge-TTS**) hosted on **Cloudflare R2**.
 
+### 📊 Analytics & Gamification
+*   **Streaks:** Daily usage tracking with fire indicators.
+*   **XP System:** Earn points for completing lessons and speaking exercises.
+*   **Leaderboards:** Compete globally with other learners.
+*   **Admin Panel:** Web-based CMS for managing courses and generating AI lessons.
+
 ### 📱 Cross-Platform
 *   **Flutter:** Single codebase for iOS, Android, macOS, and Windows.
 *   **Desktop Optimized:** Keyboard shortcuts (`ArrowRight` to advance), adaptive grid layouts, and window constraints.
+*   **Mobile Ready:** Release configuration for Play Store and App Store.
 
 ---
 
 ## 🛠️ Tech Stack
 
 ### Frontend (Client)
-*   **Framework:** Flutter (Dart)
-*   **State Management:** Riverpod 2.0
-*   **Local DB:** Drift (SQLite)
-*   **Networking:** Dio
+*   **Framework:** Flutter (Dart) - Clean Architecture
+*   **State Management:** Riverpod 2.0 (Code Generation)
+*   **Local DB:** Drift (SQLite) with Offline Sync
+*   **Networking:** Dio (with Firebase Auth & Caching)
 *   **Routing:** GoRouter
 
 ### Backend (Cloudflare)
-*   **Runtime:** Cloudflare Workers
-*   **Framework:** Hono (TypeScript)
+*   **Runtime:** Cloudflare Workers (Hono framework)
 *   **Database:** Cloudflare D1 (SQLite at the Edge)
 *   **Object Storage:** Cloudflare R2
 *   **AI Inference:** Workers AI (@cf/openai/whisper, @cf/meta/llama-3-8b-instruct)
 *   **Scoring Engine:** Levenshtein Distance + Rule-based Phonetic G2P
+*   **Analytics:** Custom event tracking & aggregation endpoint
 
 ### Content Pipeline
 *   **Language:** Python

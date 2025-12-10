@@ -1,3 +1,4 @@
+import 'package:flutter/foundation.dart';
 import 'dart:io';
 import 'package:dio/dio.dart';
 import 'package:path_provider/path_provider.dart';
@@ -59,7 +60,7 @@ class DownloadManager {
             mode: InsertMode.insertOrReplace,
           );
     } catch (e) {
-      print('Download failed for $url: $e');
+      debugPrint('Download failed for $url: $e');
       rethrow;
     }
   }

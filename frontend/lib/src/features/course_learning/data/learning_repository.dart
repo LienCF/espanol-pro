@@ -1,3 +1,4 @@
+import 'package:flutter/foundation.dart';
 import 'package:dio/dio.dart';
 import 'package:riverpod_annotation/riverpod_annotation.dart';
 import 'package:frontend/src/core/api/api_client.dart';
@@ -25,7 +26,7 @@ class LearningRepository {
       );
     } catch (e) {
       // Log error but don't block the user flow, BKT can fail silently
-      print('Failed to record learning attempt: $e');
+      debugPrint('Failed to record learning attempt: $e');
     }
   }
 }

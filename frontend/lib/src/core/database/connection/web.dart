@@ -1,8 +1,7 @@
 import 'package:drift/drift.dart';
+// ignore: deprecated_member_use
 import 'package:drift/web.dart';
 
-QueryExecutor openConnection() {
-  // Use WebDatabase with IndexedDB storage.
-  // Requires sql-wasm.js and sql-wasm.wasm in web/ folder.
-  return WebDatabase.withStorage(DriftWebStorage.indexedDb('espanol_pro'));
+QueryExecutor connect() {
+  return WebDatabase('app_db', logStatements: true);
 }

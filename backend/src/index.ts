@@ -21,21 +21,133 @@ type Bindings = {
 const app = new Hono<{ Bindings: Bindings }>()
 
 app.use('/*', cors())
-// Protect API routes except auth, webhooks, and public assets
+// ... existing imports ...
+
+// Protect API routes
 app.use('/api/*', async (c, next) => {
   const path = c.req.path
   if (path.startsWith('/api/auth') || path.startsWith('/api/payments/webhook')) {
     await next()
+  } else if (path.startsWith('/api/admin')) {
+    // Strict Admin Check
+    return await verifyAuth(c, async () => {
+      const user = c.get('user') as any
+      if (!user) {
+        return c.json({ error: 'Unauthorized' }, 401)
+      }
+      // Check admin table
+      const admin = await c.env.DB.prepare('SELECT role FROM admins WHERE user_id = ?').bind(user.sub).first()
+      if (!admin) {
+        return c.json({ error: 'Forbidden: Admins only' }, 403)
+      }
+      await next()
+    })
   } else {
-    await verifyAuth(c, next)
+    return await verifyAuth(c, next)
   }
 })
 
-app.get('/', (c) => {
-  return c.text('Hola, Español Pro API!')
+// ... existing endpoints ...
+
+// 17. Admin: Create Course
+app.post('/api/admin/courses', async (c) => {
+  try {
+    const { id, title, slug, level, track_type, description } = await c.req.json()
+    
+    if (!id || !title || !slug) {
+      return c.json({ error: 'Missing required fields' }, 400)
+    }
+
+    await c.env.DB.prepare(`
+      INSERT INTO courses (id, slug, title, description, level, track_type, version)
+      VALUES (?, ?, ?, ?, ?, ?, 1)
+    `).bind(id, slug, title, description, level, track_type).run()
+
+    return c.json({ success: true, id })
+  } catch (e: any) {
+    return c.json({ error: e.message }, 500)
+  }
 })
 
-// --- Helper Functions for Gamification ---
+// 18. Admin: Update Course
+app.put('/api/admin/courses/:id', async (c) => {
+  try {
+    const id = c.req.param('id')
+    const { title, description, level, track_type, thumbnail_url } = await c.req.json()
+
+    // Simple update logic, could be more dynamic
+    await c.env.DB.prepare(`
+      UPDATE courses 
+      SET title = COALESCE(?, title),
+          description = COALESCE(?, description),
+          level = COALESCE(?, level),
+          track_type = COALESCE(?, track_type),
+          thumbnail_url = COALESCE(?, thumbnail_url),
+          version = version + 1
+      WHERE id = ?
+    `).bind(title, description, level, track_type, thumbnail_url, id).run()
+
+    return c.json({ success: true })
+  } catch (e: any) {
+    return c.json({ error: e.message }, 500)
+  }
+})
+
+// 19. Admin: Delete Course
+app.delete('/api/admin/courses/:id', async (c) => {
+  try {
+    const id = c.req.param('id')
+    
+    // Cascade delete manually (if D1 doesn't enforce it automatically via schema)
+    // Delete Lessons
+    await c.env.DB.prepare(`
+      DELETE FROM lessons 
+      WHERE unit_id IN (SELECT id FROM units WHERE course_id = ?)
+    `).bind(id).run()
+    
+    // Delete Units
+    await c.env.DB.prepare('DELETE FROM units WHERE course_id = ?').bind(id).run()
+    
+    // Delete Course
+    await c.env.DB.prepare('DELETE FROM courses WHERE id = ?').bind(id).run()
+
+    return c.json({ success: true })
+  } catch (e: any) {
+    return c.json({ error: e.message }, 500)
+  }
+})
+
+// 20. Admin: Create/Update Lesson (Simplified Upsert for now)
+app.post('/api/admin/lessons', async (c) => {
+  try {
+    const body = await c.req.json()
+    const { id, unit_id, title, content_type, content_json, order_index, kc_id } = body;
+
+    await c.env.DB.prepare(`
+      INSERT INTO lessons (id, unit_id, title, content_type, content_json, order_index, kc_id)
+      VALUES (?, ?, ?, ?, ?, ?, ?)
+      ON CONFLICT(id) DO UPDATE SET
+        title = excluded.title,
+        content_type = excluded.content_type,
+        content_json = excluded.content_json,
+        order_index = excluded.order_index,
+        kc_id = excluded.kc_id
+    `).bind(id, unit_id, title, content_type, content_json, order_index, kc_id).run()
+
+    // Trigger Course Version Bump
+    const course = await c.env.DB.prepare('SELECT course_id FROM units WHERE id = ?').bind(unit_id).first();
+    if (course) {
+       await c.env.DB.prepare('UPDATE courses SET version = version + 1 WHERE id = ?').bind(course.course_id).run();
+    }
+
+    return c.json({ success: true })
+  } catch (e: any) {
+    return c.json({ error: e.message }, 500)
+  }
+})
+
+// ... rest of the app ...
+
 
 async function updateStreak(db: D1Database, userId: string) {
   const today = new Date().toISOString().split('T')[0];
@@ -662,6 +774,121 @@ app.get('/api/users/:userId/skills', async (c) => {
     return c.json(results)
   } catch (e) {
     return c.json({ error: 'Failed to fetch skills' }, 500)
+  }
+})
+
+// 21. Analytics: Record Event
+
+app.post('/api/analytics/event', async (c) => {
+
+  try {
+
+    const { eventName, properties, userId: bodyUserId } = await c.req.json()
+
+    const user = c.get('user') as any
+
+    const userId = user?.sub || bodyUserId
+
+
+
+    if (!eventName) {
+
+      return c.json({ error: 'Event Name is required' }, 400)
+
+    }
+
+
+
+    await c.env.DB.prepare(`
+
+      INSERT INTO analytics_events (user_id, event_name, properties, timestamp)
+
+      VALUES (?, ?, ?, ?)
+
+    `).bind(userId, eventName, JSON.stringify(properties), Math.floor(Date.now() / 1000)).run()
+
+
+
+    return c.json({ success: true })
+
+  } catch (e: any) {
+
+    return c.json({ error: e.message }, 500)
+
+  }
+
+})
+
+
+
+// 22. Admin: Get Analytics Stats
+
+app.get('/api/admin/analytics/stats', async (c) => {
+
+  try {
+
+    // Simple aggregation: Total events by type
+
+    const { results } = await c.env.DB.prepare(`
+
+      SELECT event_name, COUNT(*) as count 
+
+      FROM analytics_events 
+
+      GROUP BY event_name
+
+      ORDER BY count DESC
+
+    `).all()
+
+
+
+    return c.json({ stats: results })
+
+  } catch (e: any) {
+
+    return c.json({ error: e.message }, 500)
+
+  }
+
+})
+
+
+
+// 23. AI: Generate Lesson
+app.post('/api/ai/generate-lesson', async (c) => {
+  try {
+    // Auth check if needed (or make public for demo)
+    // await verifyAuth(c, async () => { ... }) 
+    
+    const { topic, level } = await c.req.json()
+    if (!topic || !level) return c.json({ error: 'Missing topic or level' }, 400)
+
+    const prompt = `Generate a Spanish lesson for level ${level} about "${topic}".
+    Return ONLY a JSON object with this structure:
+    {
+      "title": "Lesson Title",
+      "content_type": "DIALOGUE",
+      "content_json": "JSON string of dialogue array like [{'speaker':'A','es':'...','translation':{'en':'...'}}]"
+    }
+    Do not add markdown formatting.`
+
+    // @ts-ignore
+    const aiResponse = await c.env.AI.run('@cf/meta/llama-3-8b-instruct', {
+      messages: [{ role: 'user', content: prompt }]
+    })
+
+    const raw = aiResponse.response as string;
+    // Attempt to parse AI response to ensure it's valid JSON
+    // AI might wrap in ```json ... ```
+    let jsonStr = raw.replace(/```json/g, '').replace(/```/g, '').trim();
+    
+    // Validate by parsing
+    const lessonData = JSON.parse(jsonStr);
+
+    return c.json(lessonData)
+  } catch (e: any) {
+    return c.json({ error: e.message }, 500)
   }
 })
 

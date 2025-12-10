@@ -1,3 +1,4 @@
+import 'package:flutter/foundation.dart';
 import 'dart:io';
 import 'package:dio/dio.dart';
 import 'package:path_provider/path_provider.dart';
@@ -41,7 +42,7 @@ class ContentSyncService {
       await assetsDir.create(recursive: true);
     }
 
-    print('Downloading ${assets.length} assets...');
+    debugPrint('Downloading ${assets.length} assets...');
 
     for (final asset in assets) {
       try {
@@ -72,12 +73,12 @@ class ContentSyncService {
             // Optional: Report progress
           },
         );
-        // print('Downloaded: $fileName');
+        // debugPrint('Downloaded: $fileName');
       } catch (e) {
-        print('Failed to download asset $asset: $e');
+        debugPrint('Failed to download asset $asset: $e');
       }
     }
-    print('Asset download complete.');
+    debugPrint('Asset download complete.');
   }
 
   Future<File?> getLocalAsset(String assetUrl) async {

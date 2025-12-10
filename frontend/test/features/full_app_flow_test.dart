@@ -184,7 +184,7 @@ void main() {
       const Offset(0, -500),
     );
     await tester.pumpAndSettle();
-    
+
     // Tap with warning suppressed because the locked overlay might intercept the hit test
     await tester.tap(premiumCourseFinder, warnIfMissed: false);
     await tester.pumpAndSettle();

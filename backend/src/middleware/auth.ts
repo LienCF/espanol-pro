@@ -34,7 +34,7 @@ export async function verifyAuth(c: Context, next: Next) {
     // Attach user to context
     c.set('user', payload)
     
-    await next()
+    return await next()
   } catch (e) {
     console.error('Token verification failed:', e)
     return c.json({ error: 'Invalid Token' }, 401)

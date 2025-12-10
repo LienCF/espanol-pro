@@ -7,6 +7,7 @@ import 'features/course_learning/presentation/course_detail_screen.dart';
 import 'features/course_learning/presentation/lesson_player_screen.dart';
 import 'features/subscription/presentation/paywall_screen.dart';
 import 'features/speech_practice/presentation/speech_practice_screen.dart';
+import 'features/admin/presentation/admin_dashboard_screen.dart';
 
 final routerProvider = Provider<GoRouter>((ref) {
   final authState = ref.watch(currentUserProvider);
@@ -29,6 +30,10 @@ final routerProvider = Provider<GoRouter>((ref) {
     },
     routes: [
       GoRoute(path: '/login', builder: (context, state) => const LoginScreen()),
+      GoRoute(
+        path: '/admin',
+        builder: (context, state) => const AdminDashboardScreen(),
+      ),
       GoRoute(
         path: '/paywall',
         builder: (context, state) => const PaywallScreen(),

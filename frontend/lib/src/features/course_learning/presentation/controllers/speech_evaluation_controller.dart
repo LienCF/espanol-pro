@@ -43,7 +43,7 @@ class SpeechEvaluationController extends _$SpeechEvaluationController {
       // 1. Stop Recording
       final path = await ref.read(audioRecorderServiceProvider).stopRecording();
       if (path == null) {
-        state = const SpeechEvaluationState.error("Failed to capture audio");
+        state = const SpeechEvaluationState.error('Failed to capture audio');
         return;
       }
 

@@ -55,7 +55,7 @@ class _FlashcardViewState extends ConsumerState<FlashcardView> {
       await _player.play();
       if (mounted) setState(() => _isPlaying = false);
     } catch (e) {
-      print('Audio error: $e');
+      debugPrint('Audio error: $e');
       if (mounted) setState(() => _isPlaying = false);
     }
   }

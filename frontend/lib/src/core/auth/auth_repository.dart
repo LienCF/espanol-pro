@@ -1,3 +1,4 @@
+import 'package:flutter/foundation.dart';
 import 'package:riverpod_annotation/riverpod_annotation.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:dio/dio.dart';
@@ -24,11 +25,11 @@ class AuthRepository {
           await _authService.signInWithEmailAndPassword(email, password);
           token = await _authService.getIdToken();
         } catch (e) {
-          print('Firebase Login Failed: $e');
+          debugPrint('Firebase Login Failed: $e');
           // Auto-Register fallback
           if (e is firebase.FirebaseAuthException &&
               (e.code == 'user-not-found' || e.code == 'invalid-credential')) {
-            print('User not found, attempting registration...');
+            debugPrint('User not found, attempting registration...');
             try {
               await _authService.createUserWithEmailAndPassword(
                 email,
@@ -36,7 +37,7 @@ class AuthRepository {
               );
               token = await _authService.getIdToken();
             } catch (regError) {
-              print('Registration failed: $regError');
+              debugPrint('Registration failed: $regError');
             }
           }
         }
@@ -70,7 +71,7 @@ class AuthRepository {
 
       return user;
     } catch (e) {
-      print('Login failed: $e');
+      debugPrint('Login failed: $e');
       return null;
     }
   }

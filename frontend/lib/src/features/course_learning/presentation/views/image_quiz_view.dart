@@ -58,7 +58,7 @@ class _ImageQuizViewState extends ConsumerState<ImageQuizView> {
         }
         await _player.play();
       } catch (e) {
-        print('Error playing prompt: $e');
+        debugPrint('Error playing prompt: $e');
       }
     }
   }

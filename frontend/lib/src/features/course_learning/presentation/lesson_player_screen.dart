@@ -73,7 +73,7 @@ class _LessonPlayerScreenState extends ConsumerState<LessonPlayerScreen> {
             title: lessonAsync.when(
               data: (lesson) => Text(getLocalized(context, lesson?.title)),
               loading: () => Text(l10n.loading),
-              error: (_, __) => Text(l10n.error),
+              error: (err, stack) => Text(l10n.error),
             ),
           ),
           body: Focus(

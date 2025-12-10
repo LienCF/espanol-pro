@@ -1,3 +1,4 @@
+import 'package:flutter/foundation.dart';
 import 'dart:convert';
 import 'package:dio/dio.dart';
 import 'package:riverpod_annotation/riverpod_annotation.dart';
@@ -177,7 +178,7 @@ class CourseRepository {
           .toList();
 
       if (coursesToDelete.isNotEmpty) {
-        print(
+        debugPrint(
           'Deleting ${coursesToDelete.length} stale courses: $coursesToDelete',
         );
 
@@ -233,11 +234,11 @@ class CourseRepository {
       });
 
       if (coursesToSync.isEmpty) {
-        print('All courses up to date.');
+        debugPrint('All courses up to date.');
         return;
       }
 
-      print('Syncing details for ${coursesToSync.length} courses...');
+      debugPrint('Syncing details for ${coursesToSync.length} courses...');
 
       // 3. Fetch details ONLY for outdated courses
       for (final courseId in coursesToSync) {
@@ -318,11 +319,11 @@ class CourseRepository {
             });
           }
         } catch (e) {
-          print('Error syncing course details for $courseId: $e');
+          debugPrint('Error syncing course details for $courseId: $e');
         }
       }
     } catch (e) {
-      print('Error syncing courses: $e');
+      debugPrint('Error syncing courses: $e');
     }
   }
 
@@ -337,7 +338,7 @@ class CourseRepository {
         LessonsTableCompanion(contentJson: Value(data['content_json'])),
       );
     } catch (e) {
-      print('Error fetching lesson details: $e');
+      debugPrint('Error fetching lesson details: $e');
       rethrow;
     }
   }
@@ -372,7 +373,7 @@ class CourseRepository {
             mode: InsertMode.insertOrReplace,
           );
     } catch (e) {
-      print('Network Error: $e. Queueing request.');
+      debugPrint('Network Error: $e. Queueing request.');
       // Queue for offline sync
       await _db
           .into(_db.pendingRequestsTable)
@@ -390,7 +391,7 @@ class CourseRepository {
     final pendingRequests = await _db.select(_db.pendingRequestsTable).get();
     if (pendingRequests.isEmpty) return;
 
-    print('Processing ${pendingRequests.length} pending requests...');
+    debugPrint('Processing ${pendingRequests.length} pending requests...');
 
     for (final req in pendingRequests) {
       try {
@@ -404,9 +405,9 @@ class CourseRepository {
         await (_db.delete(
           _db.pendingRequestsTable,
         )..where((tbl) => tbl.id.equals(req.id))).go();
-        print('Synced request ${req.id}');
+        debugPrint('Synced request ${req.id}');
       } catch (e) {
-        print('Failed to sync request ${req.id}: $e');
+        debugPrint('Failed to sync request ${req.id}: $e');
         // Leave in queue to retry later
       }
     }

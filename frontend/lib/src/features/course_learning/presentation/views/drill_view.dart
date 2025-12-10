@@ -33,7 +33,7 @@ class _DrillViewState extends ConsumerState<DrillView> {
 
       if (mounted) setState(() => _playingIndex = null);
     } catch (e) {
-      print('Audio error: $e');
+      debugPrint('Audio error: $e');
       if (mounted) setState(() => _playingIndex = null);
     }
   }
@@ -55,7 +55,7 @@ class _DrillViewState extends ConsumerState<DrillView> {
         items = list.map((e) => Map<String, dynamic>.from(e as Map)).toList();
       }
     } catch (e) {
-      print('Error parsing drill content: $e');
+      debugPrint('Error parsing drill content: $e');
       return Center(child: Text('Error loading content: $e'));
     }
 

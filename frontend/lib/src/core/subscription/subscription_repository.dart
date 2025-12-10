@@ -1,3 +1,4 @@
+import 'package:flutter/foundation.dart';
 import 'package:riverpod_annotation/riverpod_annotation.dart';
 import 'package:url_launcher/url_launcher.dart';
 import '../api/api_client.dart';
@@ -27,7 +28,7 @@ class SubscriptionRepository extends _$SubscriptionRepository {
         }
       }
     } catch (e) {
-      print('Checkout failed: $e');
+      debugPrint('Checkout failed: $e');
       rethrow;
     }
   }

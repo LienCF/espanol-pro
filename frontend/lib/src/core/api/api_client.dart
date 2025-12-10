@@ -1,3 +1,4 @@
+import 'package:flutter/foundation.dart';
 import 'package:dio/dio.dart';
 import 'package:riverpod_annotation/riverpod_annotation.dart';
 import '../services/auth_service.dart';
@@ -27,7 +28,7 @@ Dio apiClient(Ref ref) {
           }
         } catch (e) {
           // Ignore token errors (might be unauthed request)
-          print('Token attach failed: $e');
+          debugPrint('Token attach failed: $e');
         }
         return handler.next(options);
       },

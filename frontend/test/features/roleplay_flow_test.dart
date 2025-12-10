@@ -69,13 +69,14 @@ void main() {
     // 3. Verify Initial Message
     expect(find.text('Hola, ¿cómo estás?'), findsOneWidget);
 
-    // 4. Mock API Response with Correction (Setup BEFORE interaction)
+    // 4. Mock API Response with Correction
     when(mockDio.post('/api/ai/chat', data: anyNamed('data'))).thenAnswer(
       (_) async => Response(
         requestOptions: RequestOptions(path: '/api/ai/chat'),
         data: {
           'response':
               'Estoy bien también. [CORRECTION: Yo estoy bien - I am well (Estary vs Ser)]',
+          'conversationId': 'conv_123',
         },
         statusCode: 200,
       ),

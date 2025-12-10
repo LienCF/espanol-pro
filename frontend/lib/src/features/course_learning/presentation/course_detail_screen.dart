@@ -150,7 +150,7 @@ class _CourseDetailScreenState extends ConsumerState<CourseDetailScreen> {
           ),
           loading: () => const Text('Loading...'),
 
-          error: (_, __) => const Text('Error'),
+          error: (err, stack) => const Text('Error'),
         ),
         background: courseAsync.when(
           data: (course) {
@@ -178,7 +178,7 @@ class _CourseDetailScreenState extends ConsumerState<CourseDetailScreen> {
             );
           },
           loading: () => Container(color: Colors.grey.shade200),
-          error: (_, __) => Container(color: Colors.red.shade100),
+          error: (err, stack) => Container(color: Colors.red.shade100),
         ),
       ),
     );
@@ -232,7 +232,7 @@ class UnitSection extends ConsumerWidget {
               ),
             ),
             loading: () => const LinearProgressIndicator(),
-            error: (err, _) => Text('Error: $err'),
+            error: (err, stack) => Text('Error: $err'),
           ),
         ],
       ),

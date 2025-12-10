@@ -1,3 +1,4 @@
+import 'package:flutter/foundation.dart';
 import 'package:dio/dio.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../../core/api/api_client.dart';
@@ -31,7 +32,7 @@ class SkillsRepository {
       final List<dynamic> data = response.data;
       return data.map((json) => Skill.fromJson(json)).toList();
     } catch (e) {
-      print('Error fetching skills: $e');
+      debugPrint('Error fetching skills: $e');
       return [];
     }
   }
