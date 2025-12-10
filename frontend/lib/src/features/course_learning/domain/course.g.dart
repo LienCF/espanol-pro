@@ -15,8 +15,6 @@ _Course _$CourseFromJson(Map<String, dynamic> json) => _Course(
   trackType: json['track_type'] as String,
   thumbnailUrl: json['thumbnail_url'] as String?,
   version: (json['version'] as num?)?.toInt() ?? 1,
-  completedLessonsCount: (json['completedLessonsCount'] as num?)?.toInt() ?? 0,
-  totalLessonsCount: (json['totalLessonsCount'] as num?)?.toInt() ?? 0,
 );
 
 Map<String, dynamic> _$CourseToJson(_Course instance) => <String, dynamic>{
@@ -28,6 +26,4 @@ Map<String, dynamic> _$CourseToJson(_Course instance) => <String, dynamic>{
   'track_type': instance.trackType,
   'thumbnail_url': instance.thumbnailUrl,
   'version': instance.version,
-  'completedLessonsCount': instance.completedLessonsCount,
-  'totalLessonsCount': instance.totalLessonsCount,
 };

@@ -145,10 +145,11 @@ class _CourseDetailScreenState extends ConsumerState<CourseDetailScreen> {
       flexibleSpace: FlexibleSpaceBar(
         title: courseAsync.when(
           data: (course) => Text(
-            getLocalized(context, course?.title) ?? 'Course Not Found',
+            getLocalized(context, course?.title),
             style: const TextStyle(fontSize: 16),
           ),
           loading: () => const Text('Loading...'),
+
           error: (_, __) => const Text('Error'),
         ),
         background: courseAsync.when(
@@ -214,7 +215,7 @@ class UnitSection extends ConsumerWidget {
               elevation: 0,
               color: Theme.of(
                 context,
-              ).colorScheme.surfaceContainerHighest.withOpacity(0.3),
+              ).colorScheme.surfaceContainerHighest.withValues(alpha: 0.3),
               shape: RoundedRectangleBorder(
                 borderRadius: BorderRadius.circular(12),
                 side: BorderSide(

@@ -177,7 +177,16 @@ void main() {
     expect(find.text('Medical Spanish'), findsOneWidget); // Premium course
 
     // 4. Attempt to access Premium content
-    await tester.tap(find.text('Medical Spanish'), warnIfMissed: false);
+    final premiumCourseFinder = find.text('Medical Spanish');
+    await tester.dragUntilVisible(
+      premiumCourseFinder,
+      find.byType(CustomScrollView),
+      const Offset(0, -500),
+    );
+    await tester.pumpAndSettle();
+    
+    // Tap with warning suppressed because the locked overlay might intercept the hit test
+    await tester.tap(premiumCourseFinder, warnIfMissed: false);
     await tester.pumpAndSettle();
 
     // Should be at Paywall

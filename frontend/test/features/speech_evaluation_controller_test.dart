@@ -6,20 +6,24 @@ import 'package:frontend/src/core/services/audio_recorder_service.dart';
 import 'package:frontend/src/features/course_learning/data/speech_evaluation_repository.dart';
 import 'package:frontend/src/features/course_learning/domain/speech_evaluation_result.dart';
 import 'package:frontend/src/features/course_learning/presentation/controllers/speech_evaluation_controller.dart';
+import 'package:frontend/src/features/course_learning/data/learning_repository.dart';
 
 @GenerateNiceMocks([
   MockSpec<AudioRecorderService>(),
   MockSpec<SpeechEvaluationRepository>(),
+  MockSpec<LearningRepository>(),
 ])
 import 'speech_evaluation_controller_test.mocks.dart';
 
 void main() {
   late MockAudioRecorderService mockRecorder;
   late MockSpeechEvaluationRepository mockRepo;
+  late MockLearningRepository mockLearningRepo;
 
   setUp(() {
     mockRecorder = MockAudioRecorderService();
     mockRepo = MockSpeechEvaluationRepository();
+    mockLearningRepo = MockLearningRepository();
   });
 
   ProviderContainer createContainer() {
@@ -27,6 +31,7 @@ void main() {
       overrides: [
         audioRecorderServiceProvider.overrideWithValue(mockRecorder),
         speechEvaluationRepositoryProvider.overrideWithValue(mockRepo),
+        learningRepositoryProvider.overrideWithValue(mockLearningRepo),
       ],
     );
     addTearDown(container.dispose);
@@ -76,7 +81,7 @@ void main() {
 
       // Simulate flow
       await controller.startRecording(); // Enter recording state
-      await controller.stopRecordingAndEvaluate('Hola');
+      await controller.stopRecordingAndEvaluate('Hola', 'lesson_123');
 
       final state = container.read(speechEvaluationControllerProvider('test'));
 
@@ -116,7 +121,7 @@ void main() {
         ),
       ).thenThrow(Exception('API Error'));
 
-      await controller.stopRecordingAndEvaluate('Hola');
+      await controller.stopRecordingAndEvaluate('Hola', 'lesson_123');
 
       final state = container.read(speechEvaluationControllerProvider('test'));
 

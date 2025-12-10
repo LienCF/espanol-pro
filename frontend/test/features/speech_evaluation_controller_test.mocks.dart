@@ -7,6 +7,8 @@ import 'dart:async' as _i4;
 import 'dart:io' as _i6;
 
 import 'package:frontend/src/core/services/audio_recorder_service.dart' as _i3;
+import 'package:frontend/src/features/course_learning/data/learning_repository.dart'
+    as _i7;
 import 'package:frontend/src/features/course_learning/data/speech_evaluation_repository.dart'
     as _i5;
 import 'package:frontend/src/features/course_learning/domain/speech_evaluation_result.dart'
@@ -125,4 +127,27 @@ class MockSpeechEvaluationRepository extends _i1.Mock
                 ),
           )
           as _i4.Future<_i2.SpeechEvaluationResult>);
+}
+
+/// A class which mocks [LearningRepository].
+///
+/// See the documentation for Mockito's code generation for more information.
+class MockLearningRepository extends _i1.Mock
+    implements _i7.LearningRepository {
+  @override
+  _i4.Future<void> recordAttempt({
+    required String? lessonId,
+    required bool? isCorrect,
+    String? userId,
+  }) =>
+      (super.noSuchMethod(
+            Invocation.method(#recordAttempt, [], {
+              #lessonId: lessonId,
+              #isCorrect: isCorrect,
+              #userId: userId,
+            }),
+            returnValue: _i4.Future<void>.value(),
+            returnValueForMissingStub: _i4.Future<void>.value(),
+          )
+          as _i4.Future<void>);
 }

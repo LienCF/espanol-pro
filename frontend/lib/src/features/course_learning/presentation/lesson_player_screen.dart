@@ -71,9 +71,7 @@ class _LessonPlayerScreenState extends ConsumerState<LessonPlayerScreen> {
         child: Scaffold(
           appBar: AppBar(
             title: lessonAsync.when(
-              data: (lesson) => Text(
-                getLocalized(context, lesson?.title) ?? l10n.lessonNotFound,
-              ),
+              data: (lesson) => Text(getLocalized(context, lesson?.title)),
               loading: () => Text(l10n.loading),
               error: (_, __) => Text(l10n.error),
             ),
@@ -82,8 +80,9 @@ class _LessonPlayerScreenState extends ConsumerState<LessonPlayerScreen> {
             autofocus: true,
             child: lessonAsync.when(
               data: (lesson) {
-                if (lesson == null)
+                if (lesson == null) {
                   return Center(child: Text(l10n.lessonNotFound));
+                }
                 if (lesson.contentJson == null) {
                   return Center(
                     child: CircularProgressIndicator(

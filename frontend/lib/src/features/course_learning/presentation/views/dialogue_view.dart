@@ -73,8 +73,9 @@ class _DialogueViewState extends ConsumerState<DialogueView> {
   @override
   Widget build(BuildContext context) {
     final l10n = AppLocalizations.of(context)!;
-    if (widget.contentJson == null)
+    if (widget.contentJson == null) {
       return Center(child: Text(l10n.noContentAvailable));
+    }
     final List<dynamic> lines = jsonDecode(widget.contentJson!);
 
     return Column(

@@ -1,6 +1,5 @@
 import 'package:dio/dio.dart';
 import 'package:drift/native.dart';
-import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:mockito/annotations.dart';
@@ -8,7 +7,7 @@ import 'package:mockito/mockito.dart';
 import 'package:frontend/main.dart';
 import 'package:frontend/src/core/api/api_client.dart';
 import 'package:frontend/src/core/auth/auth_repository.dart';
-import 'package:frontend/src/core/auth/user.dart';
+import 'package:frontend/src/core/auth/app_user.dart';
 import 'package:frontend/src/core/database/database_provider.dart';
 import 'package:frontend/src/features/course_learning/data/app_database.dart';
 import 'package:frontend/src/features/course_learning/data/course_repository.dart';
@@ -23,7 +22,7 @@ import 'course_flow_test.mocks.dart';
 
 class FakeCurrentUser extends CurrentUser {
   @override
-  User? build() => const User(
+  AppUser? build() => const AppUser(
     id: 'test_user',
     email: 'test@example.com',
     displayName: 'Test User',
@@ -155,7 +154,8 @@ void main() {
     // Verify Dashboard shows up (Auth bypassed)
     await tester.pumpAndSettle();
     expect(find.byType(DashboardScreen), findsOneWidget);
-    expect(find.text('Español Pro'), findsOneWidget);
+    // SliverAppBar might render title twice (expanded/collapsed), so we check if at least one exists
+    expect(find.text('Español Pro'), findsWidgets);
 
     // Verify Course Card appears
     expect(find.text('Spanish Foundations I'), findsOneWidget);

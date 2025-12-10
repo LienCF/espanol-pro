@@ -11,14 +11,22 @@ bool _boolFromInt(dynamic value) {
 
 @freezed
 abstract class AppUser with _$AppUser {
+  // ignore: invalid_annotation_target
+
+  @JsonSerializable(fieldRename: FieldRename.snake)
   const factory AppUser({
     required String id,
+
     required String email,
+
     @JsonKey(name: 'display_name') String? displayName,
+
     @JsonKey(name: 'is_premium', fromJson: _boolFromInt)
     @Default(false)
     bool isPremium,
+
     @JsonKey(name: 'total_xp') @Default(0) int totalXp,
+
     @JsonKey(name: 'current_streak') @Default(0) int currentStreak,
   }) = _AppUser;
 

@@ -5,6 +5,8 @@ part 'speech_evaluation_result.g.dart';
 
 @freezed
 abstract class SpeechEvaluationResult with _$SpeechEvaluationResult {
+  // ignore: invalid_annotation_target
+  @JsonSerializable(fieldRename: FieldRename.snake)
   const factory SpeechEvaluationResult({
     required int score,
     required String transcription,

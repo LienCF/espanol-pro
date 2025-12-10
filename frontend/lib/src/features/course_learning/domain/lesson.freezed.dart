@@ -213,8 +213,8 @@ return $default(_that.id,_that.unitId,_that.title,_that.contentType,_that.conten
 }
 
 /// @nodoc
-@JsonSerializable()
 
+@JsonSerializable(fieldRename: FieldRename.snake)
 class _Lesson implements Lesson {
   const _Lesson({required this.id, @JsonKey(name: 'unit_id') required this.unitId, required this.title, @JsonKey(name: 'content_type') required this.contentType, @JsonKey(name: 'content_json') this.contentJson, @JsonKey(name: 'order_index') required this.orderIndex, this.isCompleted = false});
   factory _Lesson.fromJson(Map<String, dynamic> json) => _$LessonFromJson(json);

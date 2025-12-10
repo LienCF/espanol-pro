@@ -209,8 +209,8 @@ return $default(_that.score,_that.transcription,_that.isMatch,_that.feedback);ca
 }
 
 /// @nodoc
-@JsonSerializable()
 
+@JsonSerializable(fieldRename: FieldRename.snake)
 class _SpeechEvaluationResult implements SpeechEvaluationResult {
   const _SpeechEvaluationResult({required this.score, required this.transcription, @JsonKey(name: 'is_match') required this.isMatch, final  List<String> feedback = const []}): _feedback = feedback;
   factory _SpeechEvaluationResult.fromJson(Map<String, dynamic> json) => _$SpeechEvaluationResultFromJson(json);

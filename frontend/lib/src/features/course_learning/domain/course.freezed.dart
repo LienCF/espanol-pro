@@ -15,8 +15,7 @@ T _$identity<T>(T value) => value;
 /// @nodoc
 mixin _$Course {
 
- String get id; String get slug; String get title; String? get description; String get level;// A1, A2, etc.
-@JsonKey(name: 'track_type') String get trackType;@JsonKey(name: 'thumbnail_url') String? get thumbnailUrl; int get version; int get completedLessonsCount; int get totalLessonsCount;
+ String get id; String get slug; String get title; String? get description; String get level;@JsonKey(name: 'track_type') String get trackType;@JsonKey(name: 'thumbnail_url') String? get thumbnailUrl; int get version;@JsonKey(includeFromJson: false) int get completedLessonsCount;@JsonKey(includeFromJson: false) int get totalLessonsCount;
 /// Create a copy of Course
 /// with the given fields replaced by the non-null parameter values.
 @JsonKey(includeFromJson: false, includeToJson: false)
@@ -49,7 +48,7 @@ abstract mixin class $CourseCopyWith<$Res>  {
   factory $CourseCopyWith(Course value, $Res Function(Course) _then) = _$CourseCopyWithImpl;
 @useResult
 $Res call({
- String id, String slug, String title, String? description, String level,@JsonKey(name: 'track_type') String trackType,@JsonKey(name: 'thumbnail_url') String? thumbnailUrl, int version, int completedLessonsCount, int totalLessonsCount
+ String id, String slug, String title, String? description, String level,@JsonKey(name: 'track_type') String trackType,@JsonKey(name: 'thumbnail_url') String? thumbnailUrl, int version,@JsonKey(includeFromJson: false) int completedLessonsCount,@JsonKey(includeFromJson: false) int totalLessonsCount
 });
 
 
@@ -163,7 +162,7 @@ return $default(_that);case _:
 /// }
 /// ```
 
-@optionalTypeArgs TResult maybeWhen<TResult extends Object?>(TResult Function( String id,  String slug,  String title,  String? description,  String level, @JsonKey(name: 'track_type')  String trackType, @JsonKey(name: 'thumbnail_url')  String? thumbnailUrl,  int version,  int completedLessonsCount,  int totalLessonsCount)?  $default,{required TResult orElse(),}) {final _that = this;
+@optionalTypeArgs TResult maybeWhen<TResult extends Object?>(TResult Function( String id,  String slug,  String title,  String? description,  String level, @JsonKey(name: 'track_type')  String trackType, @JsonKey(name: 'thumbnail_url')  String? thumbnailUrl,  int version, @JsonKey(includeFromJson: false)  int completedLessonsCount, @JsonKey(includeFromJson: false)  int totalLessonsCount)?  $default,{required TResult orElse(),}) {final _that = this;
 switch (_that) {
 case _Course() when $default != null:
 return $default(_that.id,_that.slug,_that.title,_that.description,_that.level,_that.trackType,_that.thumbnailUrl,_that.version,_that.completedLessonsCount,_that.totalLessonsCount);case _:
@@ -184,7 +183,7 @@ return $default(_that.id,_that.slug,_that.title,_that.description,_that.level,_t
 /// }
 /// ```
 
-@optionalTypeArgs TResult when<TResult extends Object?>(TResult Function( String id,  String slug,  String title,  String? description,  String level, @JsonKey(name: 'track_type')  String trackType, @JsonKey(name: 'thumbnail_url')  String? thumbnailUrl,  int version,  int completedLessonsCount,  int totalLessonsCount)  $default,) {final _that = this;
+@optionalTypeArgs TResult when<TResult extends Object?>(TResult Function( String id,  String slug,  String title,  String? description,  String level, @JsonKey(name: 'track_type')  String trackType, @JsonKey(name: 'thumbnail_url')  String? thumbnailUrl,  int version, @JsonKey(includeFromJson: false)  int completedLessonsCount, @JsonKey(includeFromJson: false)  int totalLessonsCount)  $default,) {final _that = this;
 switch (_that) {
 case _Course():
 return $default(_that.id,_that.slug,_that.title,_that.description,_that.level,_that.trackType,_that.thumbnailUrl,_that.version,_that.completedLessonsCount,_that.totalLessonsCount);case _:
@@ -204,7 +203,7 @@ return $default(_that.id,_that.slug,_that.title,_that.description,_that.level,_t
 /// }
 /// ```
 
-@optionalTypeArgs TResult? whenOrNull<TResult extends Object?>(TResult? Function( String id,  String slug,  String title,  String? description,  String level, @JsonKey(name: 'track_type')  String trackType, @JsonKey(name: 'thumbnail_url')  String? thumbnailUrl,  int version,  int completedLessonsCount,  int totalLessonsCount)?  $default,) {final _that = this;
+@optionalTypeArgs TResult? whenOrNull<TResult extends Object?>(TResult? Function( String id,  String slug,  String title,  String? description,  String level, @JsonKey(name: 'track_type')  String trackType, @JsonKey(name: 'thumbnail_url')  String? thumbnailUrl,  int version, @JsonKey(includeFromJson: false)  int completedLessonsCount, @JsonKey(includeFromJson: false)  int totalLessonsCount)?  $default,) {final _that = this;
 switch (_that) {
 case _Course() when $default != null:
 return $default(_that.id,_that.slug,_that.title,_that.description,_that.level,_that.trackType,_that.thumbnailUrl,_that.version,_that.completedLessonsCount,_that.totalLessonsCount);case _:
@@ -216,10 +215,10 @@ return $default(_that.id,_that.slug,_that.title,_that.description,_that.level,_t
 }
 
 /// @nodoc
-@JsonSerializable()
 
+@JsonSerializable(fieldRename: FieldRename.snake)
 class _Course implements Course {
-  const _Course({required this.id, required this.slug, required this.title, this.description, required this.level, @JsonKey(name: 'track_type') required this.trackType, @JsonKey(name: 'thumbnail_url') this.thumbnailUrl, this.version = 1, this.completedLessonsCount = 0, this.totalLessonsCount = 0});
+  const _Course({required this.id, required this.slug, required this.title, this.description, required this.level, @JsonKey(name: 'track_type') required this.trackType, @JsonKey(name: 'thumbnail_url') this.thumbnailUrl, this.version = 1, @JsonKey(includeFromJson: false) this.completedLessonsCount = 0, @JsonKey(includeFromJson: false) this.totalLessonsCount = 0});
   factory _Course.fromJson(Map<String, dynamic> json) => _$CourseFromJson(json);
 
 @override final  String id;
@@ -227,12 +226,11 @@ class _Course implements Course {
 @override final  String title;
 @override final  String? description;
 @override final  String level;
-// A1, A2, etc.
 @override@JsonKey(name: 'track_type') final  String trackType;
 @override@JsonKey(name: 'thumbnail_url') final  String? thumbnailUrl;
 @override@JsonKey() final  int version;
-@override@JsonKey() final  int completedLessonsCount;
-@override@JsonKey() final  int totalLessonsCount;
+@override@JsonKey(includeFromJson: false) final  int completedLessonsCount;
+@override@JsonKey(includeFromJson: false) final  int totalLessonsCount;
 
 /// Create a copy of Course
 /// with the given fields replaced by the non-null parameter values.
@@ -267,7 +265,7 @@ abstract mixin class _$CourseCopyWith<$Res> implements $CourseCopyWith<$Res> {
   factory _$CourseCopyWith(_Course value, $Res Function(_Course) _then) = __$CourseCopyWithImpl;
 @override @useResult
 $Res call({
- String id, String slug, String title, String? description, String level,@JsonKey(name: 'track_type') String trackType,@JsonKey(name: 'thumbnail_url') String? thumbnailUrl, int version, int completedLessonsCount, int totalLessonsCount
+ String id, String slug, String title, String? description, String level,@JsonKey(name: 'track_type') String trackType,@JsonKey(name: 'thumbnail_url') String? thumbnailUrl, int version,@JsonKey(includeFromJson: false) int completedLessonsCount,@JsonKey(includeFromJson: false) int totalLessonsCount
 });
 
 

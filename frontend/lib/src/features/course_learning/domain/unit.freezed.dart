@@ -15,7 +15,7 @@ T _$identity<T>(T value) => value;
 /// @nodoc
 mixin _$Unit {
 
- String get id;@JsonKey(name: 'course_id') String get courseId; String get title;@JsonKey(name: 'order_index') int get orderIndex;
+ String get id;@JsonKey(name: 'course_id') String get courseId; String get title;@JsonKey(name: 'order_index') int get orderIndex; List<Lesson> get lessons;
 /// Create a copy of Unit
 /// with the given fields replaced by the non-null parameter values.
 @JsonKey(includeFromJson: false, includeToJson: false)
@@ -28,16 +28,16 @@ $UnitCopyWith<Unit> get copyWith => _$UnitCopyWithImpl<Unit>(this as Unit, _$ide
 
 @override
 bool operator ==(Object other) {
-  return identical(this, other) || (other.runtimeType == runtimeType&&other is Unit&&(identical(other.id, id) || other.id == id)&&(identical(other.courseId, courseId) || other.courseId == courseId)&&(identical(other.title, title) || other.title == title)&&(identical(other.orderIndex, orderIndex) || other.orderIndex == orderIndex));
+  return identical(this, other) || (other.runtimeType == runtimeType&&other is Unit&&(identical(other.id, id) || other.id == id)&&(identical(other.courseId, courseId) || other.courseId == courseId)&&(identical(other.title, title) || other.title == title)&&(identical(other.orderIndex, orderIndex) || other.orderIndex == orderIndex)&&const DeepCollectionEquality().equals(other.lessons, lessons));
 }
 
 @JsonKey(includeFromJson: false, includeToJson: false)
 @override
-int get hashCode => Object.hash(runtimeType,id,courseId,title,orderIndex);
+int get hashCode => Object.hash(runtimeType,id,courseId,title,orderIndex,const DeepCollectionEquality().hash(lessons));
 
 @override
 String toString() {
-  return 'Unit(id: $id, courseId: $courseId, title: $title, orderIndex: $orderIndex)';
+  return 'Unit(id: $id, courseId: $courseId, title: $title, orderIndex: $orderIndex, lessons: $lessons)';
 }
 
 
@@ -48,7 +48,7 @@ abstract mixin class $UnitCopyWith<$Res>  {
   factory $UnitCopyWith(Unit value, $Res Function(Unit) _then) = _$UnitCopyWithImpl;
 @useResult
 $Res call({
- String id,@JsonKey(name: 'course_id') String courseId, String title,@JsonKey(name: 'order_index') int orderIndex
+ String id,@JsonKey(name: 'course_id') String courseId, String title,@JsonKey(name: 'order_index') int orderIndex, List<Lesson> lessons
 });
 
 
@@ -65,13 +65,14 @@ class _$UnitCopyWithImpl<$Res>
 
 /// Create a copy of Unit
 /// with the given fields replaced by the non-null parameter values.
-@pragma('vm:prefer-inline') @override $Res call({Object? id = null,Object? courseId = null,Object? title = null,Object? orderIndex = null,}) {
+@pragma('vm:prefer-inline') @override $Res call({Object? id = null,Object? courseId = null,Object? title = null,Object? orderIndex = null,Object? lessons = null,}) {
   return _then(_self.copyWith(
 id: null == id ? _self.id : id // ignore: cast_nullable_to_non_nullable
 as String,courseId: null == courseId ? _self.courseId : courseId // ignore: cast_nullable_to_non_nullable
 as String,title: null == title ? _self.title : title // ignore: cast_nullable_to_non_nullable
 as String,orderIndex: null == orderIndex ? _self.orderIndex : orderIndex // ignore: cast_nullable_to_non_nullable
-as int,
+as int,lessons: null == lessons ? _self.lessons : lessons // ignore: cast_nullable_to_non_nullable
+as List<Lesson>,
   ));
 }
 
@@ -156,10 +157,10 @@ return $default(_that);case _:
 /// }
 /// ```
 
-@optionalTypeArgs TResult maybeWhen<TResult extends Object?>(TResult Function( String id, @JsonKey(name: 'course_id')  String courseId,  String title, @JsonKey(name: 'order_index')  int orderIndex)?  $default,{required TResult orElse(),}) {final _that = this;
+@optionalTypeArgs TResult maybeWhen<TResult extends Object?>(TResult Function( String id, @JsonKey(name: 'course_id')  String courseId,  String title, @JsonKey(name: 'order_index')  int orderIndex,  List<Lesson> lessons)?  $default,{required TResult orElse(),}) {final _that = this;
 switch (_that) {
 case _Unit() when $default != null:
-return $default(_that.id,_that.courseId,_that.title,_that.orderIndex);case _:
+return $default(_that.id,_that.courseId,_that.title,_that.orderIndex,_that.lessons);case _:
   return orElse();
 
 }
@@ -177,10 +178,10 @@ return $default(_that.id,_that.courseId,_that.title,_that.orderIndex);case _:
 /// }
 /// ```
 
-@optionalTypeArgs TResult when<TResult extends Object?>(TResult Function( String id, @JsonKey(name: 'course_id')  String courseId,  String title, @JsonKey(name: 'order_index')  int orderIndex)  $default,) {final _that = this;
+@optionalTypeArgs TResult when<TResult extends Object?>(TResult Function( String id, @JsonKey(name: 'course_id')  String courseId,  String title, @JsonKey(name: 'order_index')  int orderIndex,  List<Lesson> lessons)  $default,) {final _that = this;
 switch (_that) {
 case _Unit():
-return $default(_that.id,_that.courseId,_that.title,_that.orderIndex);case _:
+return $default(_that.id,_that.courseId,_that.title,_that.orderIndex,_that.lessons);case _:
   throw StateError('Unexpected subclass');
 
 }
@@ -197,10 +198,10 @@ return $default(_that.id,_that.courseId,_that.title,_that.orderIndex);case _:
 /// }
 /// ```
 
-@optionalTypeArgs TResult? whenOrNull<TResult extends Object?>(TResult? Function( String id, @JsonKey(name: 'course_id')  String courseId,  String title, @JsonKey(name: 'order_index')  int orderIndex)?  $default,) {final _that = this;
+@optionalTypeArgs TResult? whenOrNull<TResult extends Object?>(TResult? Function( String id, @JsonKey(name: 'course_id')  String courseId,  String title, @JsonKey(name: 'order_index')  int orderIndex,  List<Lesson> lessons)?  $default,) {final _that = this;
 switch (_that) {
 case _Unit() when $default != null:
-return $default(_that.id,_that.courseId,_that.title,_that.orderIndex);case _:
+return $default(_that.id,_that.courseId,_that.title,_that.orderIndex,_that.lessons);case _:
   return null;
 
 }
@@ -209,16 +210,23 @@ return $default(_that.id,_that.courseId,_that.title,_that.orderIndex);case _:
 }
 
 /// @nodoc
-@JsonSerializable()
 
+@JsonSerializable(fieldRename: FieldRename.snake)
 class _Unit implements Unit {
-  const _Unit({required this.id, @JsonKey(name: 'course_id') required this.courseId, required this.title, @JsonKey(name: 'order_index') required this.orderIndex});
+  const _Unit({required this.id, @JsonKey(name: 'course_id') required this.courseId, required this.title, @JsonKey(name: 'order_index') required this.orderIndex, final  List<Lesson> lessons = const []}): _lessons = lessons;
   factory _Unit.fromJson(Map<String, dynamic> json) => _$UnitFromJson(json);
 
 @override final  String id;
 @override@JsonKey(name: 'course_id') final  String courseId;
 @override final  String title;
 @override@JsonKey(name: 'order_index') final  int orderIndex;
+ final  List<Lesson> _lessons;
+@override@JsonKey() List<Lesson> get lessons {
+  if (_lessons is EqualUnmodifiableListView) return _lessons;
+  // ignore: implicit_dynamic_type
+  return EqualUnmodifiableListView(_lessons);
+}
+
 
 /// Create a copy of Unit
 /// with the given fields replaced by the non-null parameter values.
@@ -233,16 +241,16 @@ Map<String, dynamic> toJson() {
 
 @override
 bool operator ==(Object other) {
-  return identical(this, other) || (other.runtimeType == runtimeType&&other is _Unit&&(identical(other.id, id) || other.id == id)&&(identical(other.courseId, courseId) || other.courseId == courseId)&&(identical(other.title, title) || other.title == title)&&(identical(other.orderIndex, orderIndex) || other.orderIndex == orderIndex));
+  return identical(this, other) || (other.runtimeType == runtimeType&&other is _Unit&&(identical(other.id, id) || other.id == id)&&(identical(other.courseId, courseId) || other.courseId == courseId)&&(identical(other.title, title) || other.title == title)&&(identical(other.orderIndex, orderIndex) || other.orderIndex == orderIndex)&&const DeepCollectionEquality().equals(other._lessons, _lessons));
 }
 
 @JsonKey(includeFromJson: false, includeToJson: false)
 @override
-int get hashCode => Object.hash(runtimeType,id,courseId,title,orderIndex);
+int get hashCode => Object.hash(runtimeType,id,courseId,title,orderIndex,const DeepCollectionEquality().hash(_lessons));
 
 @override
 String toString() {
-  return 'Unit(id: $id, courseId: $courseId, title: $title, orderIndex: $orderIndex)';
+  return 'Unit(id: $id, courseId: $courseId, title: $title, orderIndex: $orderIndex, lessons: $lessons)';
 }
 
 
@@ -253,7 +261,7 @@ abstract mixin class _$UnitCopyWith<$Res> implements $UnitCopyWith<$Res> {
   factory _$UnitCopyWith(_Unit value, $Res Function(_Unit) _then) = __$UnitCopyWithImpl;
 @override @useResult
 $Res call({
- String id,@JsonKey(name: 'course_id') String courseId, String title,@JsonKey(name: 'order_index') int orderIndex
+ String id,@JsonKey(name: 'course_id') String courseId, String title,@JsonKey(name: 'order_index') int orderIndex, List<Lesson> lessons
 });
 
 
@@ -270,13 +278,14 @@ class __$UnitCopyWithImpl<$Res>
 
 /// Create a copy of Unit
 /// with the given fields replaced by the non-null parameter values.
-@override @pragma('vm:prefer-inline') $Res call({Object? id = null,Object? courseId = null,Object? title = null,Object? orderIndex = null,}) {
+@override @pragma('vm:prefer-inline') $Res call({Object? id = null,Object? courseId = null,Object? title = null,Object? orderIndex = null,Object? lessons = null,}) {
   return _then(_Unit(
 id: null == id ? _self.id : id // ignore: cast_nullable_to_non_nullable
 as String,courseId: null == courseId ? _self.courseId : courseId // ignore: cast_nullable_to_non_nullable
 as String,title: null == title ? _self.title : title // ignore: cast_nullable_to_non_nullable
 as String,orderIndex: null == orderIndex ? _self.orderIndex : orderIndex // ignore: cast_nullable_to_non_nullable
-as int,
+as int,lessons: null == lessons ? _self._lessons : lessons // ignore: cast_nullable_to_non_nullable
+as List<Lesson>,
   ));
 }
 

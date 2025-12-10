@@ -202,7 +202,7 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
                     ),
                   ),
                   style: TextButton.styleFrom(
-                    backgroundColor: Colors.orange.withOpacity(0.1),
+                    backgroundColor: Colors.orange.withValues(alpha: 0.1),
                   ),
                 ),
               ),
@@ -464,7 +464,7 @@ class CourseCard extends StatelessWidget {
                       child: Icon(
                         isSpecialized ? Icons.engineering : Icons.language,
                         size: 48,
-                        color: Colors.white.withOpacity(0.9),
+                        color: Colors.white.withValues(alpha: 0.9),
                       ),
                     ),
                   ),
@@ -579,7 +579,7 @@ class CourseCard extends StatelessWidget {
             if (isLocked)
               Positioned.fill(
                 child: Container(
-                  color: Colors.white.withOpacity(0.6),
+                  color: Colors.white.withValues(alpha: 0.6),
                   child: const Center(
                     child: Icon(Icons.lock, size: 48, color: Colors.black26),
                   ),

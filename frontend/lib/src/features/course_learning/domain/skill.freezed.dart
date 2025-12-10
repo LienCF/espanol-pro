@@ -209,8 +209,8 @@ return $default(_that.name,_that.description,_that.masteryLevel,_that.lastPracti
 }
 
 /// @nodoc
-@JsonSerializable()
 
+@JsonSerializable(fieldRename: FieldRename.snake)
 class _Skill implements Skill {
   const _Skill({@JsonKey(name: 'skill_name') required this.name, @JsonKey(name: 'description') this.description, @JsonKey(name: 'mastery_level') required this.masteryLevel, @JsonKey(name: 'last_practice_time') this.lastPracticeTime});
   factory _Skill.fromJson(Map<String, dynamic> json) => _$SkillFromJson(json);

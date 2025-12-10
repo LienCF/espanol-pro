@@ -211,8 +211,8 @@ return $default(_that.id,_that.email,_that.displayName,_that.isPremium,_that.tot
 }
 
 /// @nodoc
-@JsonSerializable()
 
+@JsonSerializable(fieldRename: FieldRename.snake)
 class _AppUser implements AppUser {
   const _AppUser({required this.id, required this.email, @JsonKey(name: 'display_name') this.displayName, @JsonKey(name: 'is_premium', fromJson: _boolFromInt) this.isPremium = false, @JsonKey(name: 'total_xp') this.totalXp = 0, @JsonKey(name: 'current_streak') this.currentStreak = 0});
   factory _AppUser.fromJson(Map<String, dynamic> json) => _$AppUserFromJson(json);

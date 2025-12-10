@@ -41,8 +41,9 @@ class _DrillViewState extends ConsumerState<DrillView> {
   @override
   Widget build(BuildContext context) {
     final l10n = AppLocalizations.of(context)!;
-    if (widget.contentJson == null)
+    if (widget.contentJson == null) {
       return Center(child: Text(l10n.noContentAvailable));
+    }
 
     List<Map<String, dynamic>> items = [];
     try {
@@ -84,7 +85,7 @@ class _DrillViewState extends ConsumerState<DrillView> {
               final hasAudio = item['audio'] != null;
               final isPlaying = _playingIndex == index;
               final resultText = item['result'] ?? '';
-              final localizedResult = getLocalized(context, resultText) ?? '';
+              final localizedResult = getLocalized(context, resultText);
 
               return Card(
                 margin: const EdgeInsets.only(bottom: 12),

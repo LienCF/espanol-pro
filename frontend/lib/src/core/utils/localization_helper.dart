@@ -26,8 +26,9 @@ String getLocalized(BuildContext context, dynamic content) {
     final locale = Localizations.localeOf(context).languageCode;
     if (map.containsKey(locale)) return map[locale].toString();
     if (map.containsKey('zh') &&
-        (locale == 'zh' || locale == 'zh_TW' || locale == 'zh_HK'))
+        (locale == 'zh' || locale == 'zh_TW' || locale == 'zh_HK')) {
       return map['zh'].toString();
+    }
     if (map.containsKey('en')) return map['en'].toString();
     if (map.values.isNotEmpty) return map.values.first.toString();
   }

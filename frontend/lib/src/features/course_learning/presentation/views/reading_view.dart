@@ -47,8 +47,9 @@ class _ReadingViewState extends State<ReadingView> {
   @override
   Widget build(BuildContext context) {
     final l10n = AppLocalizations.of(context)!;
-    if (widget.contentJson == null)
+    if (widget.contentJson == null) {
       return Center(child: Text(l10n.noContentAvailable));
+    }
 
     final textContent = getLocalized(context, _data['text'] ?? '');
     // Simple heuristic: First line is title if it's short and uppercase-ish

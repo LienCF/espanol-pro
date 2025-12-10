@@ -5,6 +5,8 @@ part 'skill.g.dart';
 
 @freezed
 abstract class Skill with _$Skill {
+  // ignore: invalid_annotation_target
+  @JsonSerializable(fieldRename: FieldRename.snake)
   const factory Skill({
     @JsonKey(name: 'skill_name') required String name,
     @JsonKey(name: 'description') String? description,

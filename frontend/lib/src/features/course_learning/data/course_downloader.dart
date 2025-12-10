@@ -87,8 +87,9 @@ class CourseDownloader {
           // 'question_audio', and options may have images?
           if (data is List) {
             for (final item in data) {
-              if (item['question_audio'] != null)
+              if (item['question_audio'] != null) {
                 assets.add(item['question_audio']);
+              }
               if (item['options'] is List) {
                 for (final opt in item['options']) {
                   // If options have images? Currently local schema says just text/correct.

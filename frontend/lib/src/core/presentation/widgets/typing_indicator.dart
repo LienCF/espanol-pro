@@ -35,7 +35,7 @@ class _TypingIndicatorState extends State<TypingIndicator>
       decoration: BoxDecoration(
         color: Theme.of(
           context,
-        ).colorScheme.surfaceContainerHighest.withOpacity(0.5),
+        ).colorScheme.primary.withValues(alpha: _animation.value),
         borderRadius: const BorderRadius.only(
           topLeft: Radius.circular(20),
           topRight: Radius.circular(20),
